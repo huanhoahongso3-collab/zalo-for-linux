@@ -1,0 +1,165 @@
+name: Build Zalo for Linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      dmg_url:
+        description: 'Zalo DMG Download URL'
+        required: true
+        default: 'https://res-download-pc-te-vnso-pt-51.zadn.vn/mac/ZaloSetup-universal-25.5.3.dmg'
+        type: string
+      version:
+        description: 'Version tag for the release'
+        required: false
+        default: 'v1.0.0'
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y p7zip-full libnss3-dev libatk-bridge2.0-dev libdrm2-dev libxcomposite-dev libxdamage-dev libxrandr-dev libgbm-dev libgtk-3-dev libxss1
+        
+    - name: Install Node.js dependencies
+      run: npm install
+      
+    - name: Extract Zalo from DMG
+      env:
+        DMG_URL: ${{ github.event.inputs.dmg_url }}
+      run: |
+        echo "🚀 Starting extraction with DMG URL: $DMG_URL"
+        npm run extract-dmg
+        
+    - name: Sync version with extracted app
+      run: |
+        echo "🔄 Syncing version with extracted Zalo app..."
+        npm run sync-version
+        
+    - name: Verify extraction
+      run: |
+        echo "📁 Checking extracted app directory..."
+        ls -la app/ || echo "⚠️ App directory not found"
+        if [ -f "app/package.json" ]; then
+          echo "📋 App package.json found:"
+          cat app/package.json | head -20
+        else
+          echo "❌ App package.json not found"
+          exit 1
+        fi
+        
+    - name: Create application icon
+      run: |
+        mkdir -p assets
+        # Create a simple icon if none exists
+        if [ ! -f "assets/icon.png" ]; then
+          echo "🎨 Creating default icon..."
+          # Use a placeholder icon for now
+          wget -q "https://raw.githubusercontent.com/electron/electron/main/default_app/icon.png" -O assets/icon.png || true
+        fi
+        
+    - name: Build AppImage
+      run: |
+        echo "🔨 Building AppImage..."
+        npm run build:linux
+        
+    - name: List build outputs
+      run: |
+        echo "📦 Build outputs:"
+        ls -la dist/ || echo "No dist directory found"
+        find . -name "*.AppImage" -type f
+        
+    - name: Get build info
+      id: build_info
+      run: |
+        # Find the AppImage file
+        APPIMAGE_FILE=$(find dist -name "*.AppImage" -type f | head -1)
+        if [ -n "$APPIMAGE_FILE" ]; then
+          echo "appimage_file=$APPIMAGE_FILE" >> $GITHUB_OUTPUT
+          echo "appimage_name=$(basename "$APPIMAGE_FILE")" >> $GITHUB_OUTPUT
+          echo "file_size=$(stat -c%s "$APPIMAGE_FILE" | numfmt --to=iec)" >> $GITHUB_OUTPUT
+          
+          # Get the actual Zalo version from package.json
+          ZALO_VERSION=$(node -p "require('./package.json').version")
+          echo "zalo_version=$ZALO_VERSION" >> $GITHUB_OUTPUT
+        else
+          echo "❌ No AppImage file found"
+          exit 1
+        fi
+        
+    - name: Upload AppImage artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: zalo-linux-appimage
+        path: ${{ steps.build_info.outputs.appimage_file }}
+        retention-days: 30
+        
+    - name: Create Release
+      if: github.event.inputs.version != ''
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.event.inputs.version }}
+        name: Zalo for Linux ${{ github.event.inputs.version }}
+        body: |
+          # Zalo for Linux ${{ github.event.inputs.version }}
+          
+          🎉 **Unofficial Zalo port for Linux systems**
+          
+          ## 📥 Download
+          - **File**: `${{ steps.build_info.outputs.appimage_name }}`
+          - **Size**: `${{ steps.build_info.outputs.file_size }}`
+          - **Format**: AppImage (portable, no installation required)
+          
+          ## 🚀 How to use
+          1. Download the `.AppImage` file
+          2. Make it executable: `chmod +x ${{ steps.build_info.outputs.appimage_name }}`
+          3. Run it: `./${{ steps.build_info.outputs.appimage_name }}`
+          
+          ## ⚠️ Important Notes
+          - This is an **unofficial** port from the macOS version
+          - Built with Electron 22.3.27 for compatibility
+          - Source DMG: `${{ github.event.inputs.dmg_url }}`
+          
+          ## 📋 System Requirements
+          - Linux x64
+          - GLIBC 2.28 or later
+          - Desktop environment with system tray support (recommended)
+          
+          ## 🐛 Issues & Support
+          Please report issues in the [GitHub Issues](https://github.com/${{ github.repository }}/issues) section.
+          
+          ---
+          *Built automatically from macOS version using GitHub Actions*
+        files: ${{ steps.build_info.outputs.appimage_file }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Build Summary
+      run: |
+        echo "## 🎉 Build Completed Successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Build Information" >> $GITHUB_STEP_SUMMARY
+        echo "- **Zalo Version**: \`${{ steps.build_info.outputs.zalo_version }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **DMG Source**: \`${{ github.event.inputs.dmg_url }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **AppImage File**: \`${{ steps.build_info.outputs.appimage_name }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **File Size**: \`${{ steps.build_info.outputs.file_size }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Electron Version**: \`22.3.27\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "1. Download the AppImage from the artifacts section" >> $GITHUB_STEP_SUMMARY
+        echo "2. Make it executable: \`chmod +x ${{ steps.build_info.outputs.appimage_name }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "3. Run it: \`./${{ steps.build_info.outputs.appimage_name }}\`" >> $GITHUB_STEP_SUMMARY 

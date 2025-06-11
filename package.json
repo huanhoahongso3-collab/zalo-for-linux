@@ -1,0 +1,79 @@
+{
+  "name": "zalo-for-linux",
+  "version": "25.5.3",
+  "description": "Unofficial Zalo port for Linux",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "npm run sync-version && npm run cleanup-app && electron-builder --linux",
+    "extract-dmg": "node scripts/extract-dmg.js",
+    "cleanup-app": "node scripts/cleanup-app.js",
+    "sync-version": "node scripts/sync-version.js",
+    "reset-config": "./scripts/reset-zalo-config.sh",
+    "debug-appimage": "./scripts/debug-appimage.sh",
+    "setup": "npm install && npm run extract-dmg",
+    "test": "./scripts/test-local.sh"
+  },
+  "keywords": [
+    "zalo",
+    "chat",
+    "messaging",
+    "linux"
+  ],
+  "author": "doandat943",
+  "license": "MIT",
+  "homepage": "https://github.com/doandat943/zalo-for-linux",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/doandat943/zalo-for-linux.git"
+  },
+  "bugs": {
+    "url": "https://github.com/doandat943/zalo-for-linux/issues"
+  },
+  "devDependencies": {
+    "electron": "22.3.27",
+    "electron-builder": "^24.6.4",
+    "asar": "^3.2.0"
+  },
+  "build": {
+    "appId": "com.zalo.linux",
+    "productName": "Zalo",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "assets/**/*"
+    ],
+    "extraFiles": [
+      {
+        "from": "app",
+        "to": "app",
+        "filter": [
+          "**/*",
+          "!node_modules",
+          "!package-lock.json",
+          "!native"
+        ]
+      }
+    ],
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "buildDependenciesFromSource": false,
+    "nodeGypRebuild": false,
+    "npmRebuild": false,
+    "linux": {
+      "target": "AppImage",
+      "category": "Network",
+      "synopsis": "Zalo messaging app for Linux",
+      "description": "Unofficial port of Zalo messaging application for Linux systems."
+    },
+    "appImage": {
+      "category": "Network",
+      "synopsis": "Zalo messaging app",
+      "description": "Unofficial port of Zalo messaging application for Linux systems"
+    }
+  }
+}
