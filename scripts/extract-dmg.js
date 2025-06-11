@@ -64,26 +64,6 @@ async function downloadFile(url, destination) {
   });
 }
 
-function executeCommand(command, description) {
-  console.log(`🔧 ${description}...`);
-  console.log(`📝 Command: ${command}`);
-  
-  try {
-    const result = execSync(command, { 
-      cwd: WORK_DIR, 
-      stdio: 'pipe',
-      encoding: 'utf8'
-    });
-    console.log('✅ Success!');
-    return result;
-  } catch (error) {
-    console.error(`❌ Failed: ${error.message}`);
-    if (error.stdout) console.log('stdout:', error.stdout);
-    if (error.stderr) console.error('stderr:', error.stderr);
-    throw error;
-  }
-}
-
 function commandExists(command) {
   try {
     execSync(`command -v ${command}`, { stdio: 'ignore' });
@@ -94,51 +74,109 @@ function commandExists(command) {
 }
 
 async function extractDMG() {
-  const dmgPath = path.join(WORK_DIR, 'zalo.dmg');
+  // Extract filename from URL
+  const urlPath = new URL(DMG_URL).pathname;
+  const dmgFilename = path.basename(urlPath) || 'zalo.dmg';
+  const dmgPath = path.join(WORK_DIR, dmgFilename);
+  
+  console.log('📄 DMG filename:', dmgFilename);
   
   try {
-    // Download DMG
-    await downloadFile(DMG_URL, dmgPath);
+    // Download DMG (skip if already exists)
+    if (fs.existsSync(dmgPath)) {
+      console.log('💾 DMG file already exists, skipping download');
+      console.log('📄 Using existing file:', dmgPath);
+    } else {
+      await downloadFile(DMG_URL, dmgPath);
+    }
 
-    // On Linux, we need 7z to extract the DMG
-    console.log('🐧 This is a Linux environment. Checking for required tools...');
-
+    // Check for 7z
+    console.log('🐧 Checking for required tools...');
     if (!commandExists('7z')) {
       console.error('❌ Dependency missing: 7z is not installed.');
       console.error('Please install it using: sudo apt-get install p7zip-full');
       throw new Error('7z is required for DMG extraction.');
     }
-
     console.log('✅ 7z is available.');
     
-    // Extract using 7z
-    executeCommand(`7z x "${dmgPath}" -o"${path.join(WORK_DIR, 'extracted_dmg')}"`, 'Extracting DMG with 7z');
+    // Extract app.asar and app.asar.unpacked directly using the optimized command
+    console.log('🔧 Extracting app.asar and app.asar.unpacked from DMG...');
+    const extractCommand = `7z x "${dmgPath}" "Zalo*/Zalo.app/Contents/Resources/app.asar*"`;
     
-    // The structure is often nested, find the actual app.asar
-    const findAsarCommand = `find "${path.join(WORK_DIR, 'extracted_dmg')}" -name "app.asar" -type f`;
-    const asarPaths = executeCommand(findAsarCommand, 'Finding app.asar').trim().split('\n').filter(Boolean);
-    
-    if (asarPaths.length === 0) {
-      console.error('❌ Could not find app.asar in the extracted DMG files.');
-      console.error('Please check the contents of the temp/extracted_dmg directory.');
-      throw new Error('app.asar not found after extraction.');
+    try {
+      execSync(extractCommand, { 
+        cwd: WORK_DIR,
+        stdio: 'pipe' // Suppress output to avoid seeing the "Headers Error" 
+      });
+    } catch (error) {
+      // 7z might report "Headers Error" but still extract successfully
+      // Check if app.asar was extracted anyway
+      console.log('⚠️  7z reported warnings/errors (this is normal for DMG files)');
     }
     
-    // The first one is usually correct
-    const asarPath = asarPaths[0];
-    console.log('🎯 Found app.asar at:', asarPath);
+    // Find Resources directory (contains both app.asar and app.asar.unpacked)
+    console.log('🔍 Looking for Zalo Resources directory...');
+    const findResourcesCommand = `find "${WORK_DIR}" -path "*/Zalo.app/Contents/Resources" -type d`;
+    let resourcesPaths;
     
-    // Extract app.asar
-    console.log('📂 Extracting app.asar...');
+    try {
+      const result = execSync(findResourcesCommand, { 
+        cwd: WORK_DIR,
+        encoding: 'utf8',
+        stdio: 'pipe'
+      });
+      resourcesPaths = result.trim().split('\n').filter(Boolean);
+    } catch (error) {
+      resourcesPaths = [];
+    }
+    
+    const resourcesPath = resourcesPaths[0];
+    
+    console.log('🎯 Found Resources at:', resourcesPath);
+    
+    // Extract app.asar to final location (asar module will automatically handle unpacked files)
+    console.log('📂 Extracting app.asar to app directory...');
     const asarModule = require('asar');
-    await asarModule.extractAll(asarPath, APP_DIR);
+    
+    // Set the working directory to Resources so that unpacked files are resolved correctly
+    const originalCwd = process.cwd();
+    try {
+      process.chdir(resourcesPath);
+      await asarModule.extractAll('app.asar', APP_DIR);
+    } finally {
+      process.chdir(originalCwd);
+    }
+    
+    // Clean up extracted folders
+    console.log('🧹 Cleaning up extracted folders...');
+    const zaloFolders = execSync(`find "${WORK_DIR}" -name "Zalo*" -type d`, { 
+      cwd: WORK_DIR,
+      encoding: 'utf8',
+      stdio: 'pipe'
+    }).trim().split('\n').filter(Boolean);
+    
+    // Remove extracted folders
+    zaloFolders.forEach(folder => {
+      if (fs.existsSync(folder)) {
+        fs.rmSync(folder, { recursive: true, force: true });
+      }
+    });
     
     console.log('✅ App extracted to:', APP_DIR);
     
-    // Verify extraction
-    if (fs.existsSync(path.join(APP_DIR, 'package.json'))) {
-      const packageJson = JSON.parse(fs.readFileSync(path.join(APP_DIR, 'package.json'), 'utf8'));
+    // Rename package.json to package.json.backup to prevent electron-builder conflicts
+    const packageJsonPath = path.join(APP_DIR, 'package.json');
+    const packageJsonBackupPath = path.join(APP_DIR, 'package.json.backup');
+    
+    if (fs.existsSync(packageJsonPath)) {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
       console.log('📋 App info:', packageJson.name, packageJson.version);
+      
+      // Rename to backup
+      fs.renameSync(packageJsonPath, packageJsonBackupPath);
+      console.log('📁 Renamed package.json → package.json.backup');
+    } else {
+      console.warn('⚠️  package.json not found in extracted app');
     }
     
     console.log('🎉 Extraction completed successfully!');
@@ -146,13 +184,10 @@ async function extractDMG() {
   } catch (error) {
     console.error('💥 Extraction failed:', error.message);
     process.exit(1);
-  } finally {
-    // Cleanup
-    if (fs.existsSync(WORK_DIR)) {
-      console.log('🧹 Cleaning up temporary files...');
-      fs.rmSync(WORK_DIR, { recursive: true, force: true });
-    }
   }
+  
+  console.log(`💾 DMG file preserved at: ${dmgPath}`);
+  console.log(`📁 Temp directory preserved at: ${WORK_DIR}`);
 }
 
 // Run extraction

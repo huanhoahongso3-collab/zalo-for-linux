@@ -5,28 +5,11 @@ const fs = require('fs');
 // Minimal wrapper - let Zalo do everything
 function bootstrap() {
   // Check if extracted app exists
-  const isDev = process.env.NODE_ENV === 'development';
-  let appPath;
+  // Try development path first, then production path
+  const devPath = path.join(__dirname, 'app');
+  const prodPath = path.join(path.dirname(process.execPath), 'app');
   
-  if (isDev) {
-    appPath = path.join(__dirname, 'app');
-  } else {
-    // Try different possible locations in packaged app
-    const possiblePaths = [
-      path.join(process.resourcesPath, 'app'),
-      path.join(path.dirname(process.execPath), 'app'),
-      path.join(__dirname, '..', 'app'),
-      path.join(__dirname, 'app')
-    ];
-    
-    appPath = possiblePaths.find(p => fs.existsSync(path.join(p, 'bootstrap.js')));
-    
-    if (!appPath) {
-      console.error('Zalo app not found in any expected location:', possiblePaths);
-      return;
-    }
-  }
-  
+  let appPath = fs.existsSync(devPath) ? devPath : prodPath;
   const bootstrapPath = path.join(appPath, 'bootstrap.js');
 
   if (fs.existsSync(bootstrapPath)) {
@@ -48,4 +31,4 @@ function bootstrap() {
 }
 
 // Skip normal Electron app setup and go straight to Zalo
-bootstrap(); 
+bootstrap();

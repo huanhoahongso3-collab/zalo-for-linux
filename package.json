@@ -1,18 +1,13 @@
 {
   "name": "zalo-for-linux",
-  "version": "25.5.3",
+  "version": "1.0.0",
   "description": "Unofficial Zalo port for Linux",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "npm run sync-version && npm run cleanup-app && electron-builder --linux",
+    "build": "node scripts/build.js",
     "extract-dmg": "node scripts/extract-dmg.js",
-    "cleanup-app": "node scripts/cleanup-app.js",
-    "sync-version": "node scripts/sync-version.js",
-    "reset-config": "./scripts/reset-zalo-config.sh",
-    "debug-appimage": "./scripts/debug-appimage.sh",
-    "setup": "npm install && npm run extract-dmg",
-    "test": "./scripts/test-local.sh"
+    "setup": "npm install && npm run extract-dmg"
   },
   "keywords": [
     "zalo",
@@ -53,8 +48,7 @@
         "filter": [
           "**/*",
           "!node_modules",
-          "!package-lock.json",
-          "!native"
+          "!package-lock.json"
         ]
       }
     ],
@@ -69,11 +63,6 @@
       "category": "Network",
       "synopsis": "Zalo messaging app for Linux",
       "description": "Unofficial port of Zalo messaging application for Linux systems."
-    },
-    "appImage": {
-      "category": "Network",
-      "synopsis": "Zalo messaging app",
-      "description": "Unofficial port of Zalo messaging application for Linux systems"
     }
   }
 }
