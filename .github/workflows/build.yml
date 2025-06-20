@@ -34,11 +34,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-electron-
           
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update -qq
-        sudo apt-get install -y --no-install-recommends p7zip-full
-        
     - name: Install Node.js dependencies
       run: npm ci --prefer-offline --no-audit
       
@@ -68,10 +63,8 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ steps.build.outputs.release_tag }}
-        name: Zalo for Linux ${{ steps.build.outputs.release_tag }}
-        body: |
-          # Zalo for Linux ${{ steps.build.outputs.release_tag }}
-          
+        name: ${{ steps.build.outputs.release_tag }}
+        body: |          
           🎉 **Unofficial Zalo port for Linux systems**
           
           ## 📥 Download
