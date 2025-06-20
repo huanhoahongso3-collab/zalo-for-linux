@@ -5,6 +5,7 @@
 /dist/
 /build/
 /out/
+build-info.json
 
 # Generated directories from scripts
 /app/

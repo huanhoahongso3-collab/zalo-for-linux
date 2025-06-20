@@ -34,17 +34,7 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y --no-install-recommends \
-          p7zip-full \
-          libnss3-dev \
-          libatk-bridge2.0-dev \
-          libdrm2-dev \
-          libxcomposite-dev \
-          libxdamage-dev \
-          libxrandr-dev \
-          libgbm-dev \
-          libgtk-3-dev \
-          libxss1
+        sudo apt-get install -y --no-install-recommends p7zip-full
         
     - name: Install Node.js dependencies
       run: npm ci --prefer-offline --no-audit
@@ -65,7 +55,7 @@ jobs:
     - name: Upload AppImage artifact
       uses: actions/upload-artifact@v4
       with:
-        name: zalo-linux-${{ steps.build.outputs.zalo_version }}
+        name: zalo-linux-${{ steps.build.outputs.release_tag }}
         path: ${{ steps.build.outputs.appimage_file }}
         retention-days: 30
         
@@ -98,7 +88,7 @@ jobs:
           
           ## ⚠️ Important Notes
           - This is an **unofficial** port from the macOS version
-          - Version automatically synced from official Zalo macOS app: **${{ steps.build.outputs.zalo_version }}**
+          - Version automatically synced from official Zalo macOS app: **${{ steps.build.outputs.release_tag }}**
           - Source DMG: `${{ github.event.inputs.dmg_url }}`
           
           ## 📋 System Requirements

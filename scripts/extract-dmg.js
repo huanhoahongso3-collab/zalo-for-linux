@@ -136,7 +136,7 @@ async function extractDMG() {
     
     // Extract app.asar to final location (asar module will automatically handle unpacked files)
     console.log('📂 Extracting app.asar to app directory...');
-    const asarModule = require('asar');
+    const asarModule = require('@electron/asar');
     
     // Set the working directory to Resources so that unpacked files are resolved correctly
     const originalCwd = process.cwd();

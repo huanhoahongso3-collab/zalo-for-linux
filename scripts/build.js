@@ -85,9 +85,8 @@ try {
   
   // Export build info for GitHub Actions
   const buildInfo = {
-    zaloVersion,
+    releaseTag: zaloVersion,
     zaloName,
-    releaseTag: `v${zaloVersion}`,
     appImageFile,
     appImageName,
     fileSize: fileSize ? (fileSize / 1024 / 1024).toFixed(2) + 'MB' : null,
@@ -100,9 +99,8 @@ try {
   // Export to GitHub Actions if running in CI
   if (process.env.GITHUB_OUTPUT) {
     const outputs = [
-      `zalo_version=${zaloVersion}`,
+      `release_tag=${zaloVersion}`,
       `zalo_name=${zaloName}`,
-      `release_tag=v${zaloVersion}`,
       `appimage_file=${appImageFile || ''}`,
       `appimage_name=${appImageName || ''}`,
       `file_size=${buildInfo.fileSize || ''}`,
