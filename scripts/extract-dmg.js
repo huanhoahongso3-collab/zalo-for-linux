@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('fs-extra');
 const path = require('path');
 const { execSync } = require('child_process');
 
@@ -264,18 +264,32 @@ async function extractDMG() {
     
     console.log('🎯 Found Resources at:', resourcesPath);
     
-    // Extract app.asar to final location (asar module will automatically handle unpacked files)
-    console.log('📂 Extracting app.asar to app directory...');
-    const asarModule = require('@electron/asar');
+    // ZaDark Integration (always applied in this project)
+    console.log('🎨 Applying ZaDark patches...');
     
-    // Set the working directory to Resources so that unpacked files are resolved correctly
-    const originalCwd = process.cwd();
     try {
-      process.chdir(resourcesPath);
-      await asarModule.extractAll('app.asar', APP_DIR);
-    } finally {
-      process.chdir(originalCwd);
+      // Verify ZaDark module is available
+      const zadarkModulePath = path.join(__dirname, '..', 'temp', 'zadark', 'build', 'pc', 'zadark-pc.js');
+      if (!fs.existsSync(zadarkModulePath)) {
+        throw new Error('ZaDark PC module not found - run "npm run prepare-zadark" first');
+      }
+      
+      // Import ZaDark PC module
+      const zadarkPC = require(zadarkModulePath);
+      
+      console.log('🎯 Applying ZaDark patches to app.asar...');
+      await zadarkPC.installZaDark(resourcesPath);
+      console.log('✅ ZaDark patches applied successfully');
+      
+    } catch (error) {
+      console.error('❌ ZaDark integration failed:', error.message);
+      console.log('💡 Continuing with original app.asar...');
     }
+    
+    // Copy ZaDark-processed app directory (ZaDark always converts app.asar to directory)
+    console.log('📁 Copying ZaDark-processed app directory...');
+    const appAsarPath = path.join(resourcesPath, 'app.asar');
+    fs.copySync(appAsarPath, APP_DIR);
     
     // Clean up extracted folders
     console.log('🧹 Cleaning up extracted folders...');
@@ -320,4 +334,4 @@ async function extractDMG() {
 }
 
 // Run extraction
-extractDMG(); 
+extractDMG();

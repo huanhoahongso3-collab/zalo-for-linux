@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/doandat943/zalo-for-linux/actions/workflows/build.yml/badge.svg)](https://github.com/doandat943/zalo-for-linux/actions/workflows/build.yml)
 
-An unofficial, community-driven port of the Zalo desktop application for **Linux only**, created by repackaging the official macOS client into a standard AppImage.
+An unofficial, community-driven port of the Zalo desktop application for **Linux only**, created by repackaging the official macOS client into a standard AppImage with integrated ZaDark.
 
 ## ⚠️ Important: Known Issues
 
@@ -37,28 +37,72 @@ If you prefer to build it yourself:
 git clone https://github.com/doandat943/zalo-for-linux.git
 cd zalo-for-linux
 
-# Install project dependencies (Node.js required)
-npm install
-
-# Download and extract the latest Zalo macOS app
 # Option 1: Auto-download latest version (recommended)
 npm run setup
 
 # Option 2: Download specific version
 DMG_VERSION="25.8.2" npm run setup
 
-# Build the AppImage
+# Build AppImage
 npm run build
 ```
-The final AppImage will be in the `dist/` directory.
+The final AppImage will be in the `dist/` directory!
+
+## 🌙 ZaDark Integration
+
+This project includes integrated [ZaDark](https://github.com/quaric/zadark) by default, ZaDark is an extension that helps you enable Dark Mode, more privacy features, and additional functionality.
+
+**ZaDark helps you experience Zalo 🔒 more privately ✨ more personalized.**
+
+### Features
+- 🌙 **Dark Mode optimized specifically for Zalo** - Complete dark theme tailored for Zalo interface
+- 🆃 **Customize fonts and font sizes** - Personalize text appearance to your preference  
+- 🖼️ **Custom chat backgrounds** - Set personalized backgrounds for conversations
+- 🔤 **Quick message translation** - Instantly translate messages to your preferred language
+- 😊 **Express emotions with 80+ Emojis** - Enhanced emoji reactions for messages
+- 🔒 **Anti-message peeking protection** - Prevent others from secretly viewing your messages
+- 👁️ **Hide status indicators** - Hide "typing", "delivered" and "read" status from others
+- 📱 **Native Integration** - Seamlessly integrated during build process
+
+### Usage
+
+**Complete Workflow:**
+```bash
+# Setup (downloads Zalo + prepares ZaDark)
+npm run setup
+
+# Build ZaDark-integrated version
+npm run build
+```
+
+**What happens during setup:**
+1. 📥 Downloads latest Zalo DMG from official source
+2. 📦 Extracts Zalo app from DMG file
+3. 🎨 **Prepares ZaDark** - clones repository and builds assets
+4. 🌙 **Integrates ZaDark** - applies enhancements and utilities during extraction
+5. ✅ Everything ready for building!
+
+**What happens when you build:**
+1. 🌙 **ZaDark version**: `Zalo-X.X.X.AppImage` - Clean filename with integrated ZaDark enhancements
+
+**Individual Commands:**
+```bash
+npm run download-dmg     # Download Zalo DMG only
+npm run extract-dmg      # Extract and integrate ZaDark into Zalo app
+npm run prepare-zadark   # Prepare ZaDark assets only
+npm run build           # Build ZaDark-integrated AppImage
+```
+
+> **Note:** ZaDark is licensed under MPL-2.0 and is developed by [Quaric](https://zadark.com). The setup process automatically prepares ZaDark, and build process integrates it seamlessly!
 
 ## 🛠️ Development Scripts
 
 - `npm start`: Runs the app in development mode without packaging.
-- `npm run build`: Packages the application into an AppImage for Linux.
+- `npm run build`: Builds ZaDark-integrated AppImage version.
 - `npm run download-dmg`: Downloads the latest Zalo DMG file automatically, or uses DMG_VERSION if provided.
 - `npm run extract-dmg`: Extracts the Zalo app from an existing DMG file (shows interactive selection menu if multiple DMG files exist, unless DMG_VERSION is specified for auto-selection).
-- `npm run setup`: Downloads and extracts in sequence (equivalent to `download-dmg` + `extract-dmg`).
+- `npm run prepare-zadark`: Clones and builds ZaDark assets for later integration.
+- `npm run setup`: Complete setup workflow (equivalent to `download-dmg` + `extract-dmg` + `prepare-zadark`).
 
 ### 📥 Download Modes  
 
@@ -82,7 +126,7 @@ DMG_VERSION="25.8.2" npm run download-dmg
 **🔄 Force Re-download:**
 ```bash
 FORCE_DOWNLOAD=true npm run download-dmg
-# Forces re-download even if file already exists (works with both modes)
+# Forces re-download even if file already exists
 ```
 
 ### 🎯 Usage Examples
@@ -120,14 +164,15 @@ DMG_VERSION="25.8.2" npm run setup
 
 | **Use Case** | **Command** | **User Interaction?** |
 |--------------|-------------|----------------------|
-| 🚀 First time setup | `npm install && npm run setup && npm run build` | ⚠️ Maybe (if multiple DMG files) |
-| 🤖 **Automated setup** | `DMG_VERSION="25.8.2" npm install && npm run setup && npm run build` | ❌ **Never** |
+| 🚀 **Complete workflow** | `npm run setup && npm run build` | ⚠️ Maybe (if multiple DMG files) |
+| 🤖 **Fully automated** | `DMG_VERSION="25.8.2" npm run setup && npm run build` | ❌ **Never** |
 | 📥 Download only | `npm run download-dmg` | ❌ Never |
 | 📥 Download specific version | `DMG_VERSION="25.8.2" npm run download-dmg` | ❌ Never |
 | 🔧 Extract only | `npm run extract-dmg` | ⚠️ Maybe (interactive menu) |
 | 🔧 **Extract specific version** | `DMG_VERSION="25.8.2" npm run extract-dmg` | ❌ **Never** |
+| 🎨 Prepare ZaDark only | `npm run prepare-zadark` | ❌ Never |
 | 👨‍💻 Development testing | `npm start` | ❌ Never |
-| 🏗️ Build AppImage | `npm run build` | ❌ Never |
+| 🏗️ **Build integrated version** | `npm run build` | ❌ Never |
 
 ## 🌍 Environment Variables
 
@@ -138,6 +183,7 @@ DMG_VERSION="25.8.2" npm run setup
 
 **Combine variables:**
 ```bash
+# Example: Download specific version with force re-download
 DMG_VERSION="25.8.2" FORCE_DOWNLOAD=true npm run setup
 ```
 
@@ -180,14 +226,14 @@ After running `npm run setup`, your project will look like:
 ```
 zalo-for-linux/
 ├── app/                     # ✅ Extracted Zalo app (ready for Electron)
-│   ├── package.json.backup  # Original Zalo version info
+│   ├── package.json.backup  # Zalo version info for builds
 │   ├── main.js              # Main Electron entry point
 │   ├── pc-dist/             # Web assets, icons, styles
 │   └── native/              # Native modules and bindings
 ├── temp/                    # Downloaded DMG files (preserved)
 │   └── ZaloSetup-universal-*.dmg
 ├── dist/                    # Built AppImage (after npm run build)
-│   └── Zalo-*.AppImage      # 🎉 Final Linux application
+│   └── Zalo-*.AppImage              # 🌙 ZaDark-integrated version
 ├── main.js                  # Electron wrapper for Linux
 └── package.json             # Project configuration
 ```

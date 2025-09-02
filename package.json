@@ -1,17 +1,19 @@
 {
   "name": "zalo-for-linux",
   "version": "1.0.0",
-  "description": "Unofficial Zalo port for Linux",
+  "description": "Unofficial Zalo port for Linux with ZaDark integration",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "node scripts/build.js",
     "download-dmg": "node scripts/download-dmg.js",
     "extract-dmg": "node scripts/extract-dmg.js",
-    "setup": "npm install && npm run download-dmg && npm run extract-dmg"
+    "prepare-zadark": "node scripts/prepare-zadark.js",
+    "setup": "npm install && npm run download-dmg && npm run prepare-zadark && npm run extract-dmg"
   },
   "keywords": [
     "zalo",
+    "zadark",
     "chat",
     "messaging",
     "linux"
@@ -27,9 +29,10 @@
     "url": "https://github.com/doandat943/zalo-for-linux/issues"
   },
   "devDependencies": {
+    "@electron/asar": "^3.2.10",
     "electron": "22.3.27",
     "electron-builder": "^24.13.3",
-    "@electron/asar": "^3.2.10"
+    "node-html-parser": "^7.0.1"
   },
   "build": {
     "appId": "com.zalo.linux",
