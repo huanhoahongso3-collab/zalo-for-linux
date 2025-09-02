@@ -1,15 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const https = require('https');
-const http = require('http');
 
 const DMG_URL = process.env.DMG_URL || 'https://res-download-pc-te-vnso-pt-51.zadn.vn/mac/ZaloSetup-universal-25.5.3.dmg';
 const WORK_DIR = path.join(__dirname, '..', 'temp');
 const APP_DIR = path.join(__dirname, '..', 'app');
 
-console.log('🚀 Starting Zalo DMG extraction process...');
-console.log('📦 DMG URL:', DMG_URL);
+console.log('🔧 Starting Zalo DMG extraction process...');
+console.log('📂 Work directory:', WORK_DIR);
 
 // Create directories
 if (!fs.existsSync(WORK_DIR)) {
@@ -20,49 +18,7 @@ if (fs.existsSync(APP_DIR)) {
   fs.rmSync(APP_DIR, { recursive: true, force: true });
 }
 
-async function downloadFile(url, destination) {
-  return new Promise((resolve, reject) => {
-    console.log('📥 Downloading DMG file...');
-    
-    const request = (url.startsWith('https') ? https : http).get(url, (response) => {
-      if (response.statusCode === 302 || response.statusCode === 301) {
-        // Handle redirects
-        return downloadFile(response.headers.location, destination);
-      }
-      
-      if (response.statusCode !== 200) {
-        reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
-        return;
-      }
 
-      const fileStream = fs.createWriteStream(destination);
-      const totalSize = parseInt(response.headers['content-length'] || '0');
-      let downloadedSize = 0;
-
-      response.on('data', (chunk) => {
-        downloadedSize += chunk.length;
-        const progress = totalSize > 0 ? ((downloadedSize / totalSize) * 100).toFixed(1) : 'Unknown';
-        process.stdout.write(`\r📊 Progress: ${progress}% (${Math.round(downloadedSize / 1024 / 1024)}MB)`);
-      });
-
-      response.pipe(fileStream);
-
-      fileStream.on('finish', () => {
-        fileStream.close();
-        console.log('\n✅ Download completed!');
-        resolve();
-      });
-
-      fileStream.on('error', reject);
-    });
-
-    request.on('error', reject);
-    request.setTimeout(30000, () => {
-      request.destroy();
-      reject(new Error('Download timeout'));
-    });
-  });
-}
 
 function commandExists(command) {
   try {
@@ -82,13 +38,17 @@ async function extractDMG() {
   console.log('📄 DMG filename:', dmgFilename);
   
   try {
-    // Download DMG (skip if already exists)
-    if (fs.existsSync(dmgPath)) {
-      console.log('💾 DMG file already exists, skipping download');
-      console.log('📄 Using existing file:', dmgPath);
-    } else {
-      await downloadFile(DMG_URL, dmgPath);
+    // Check if DMG file exists
+    if (!fs.existsSync(dmgPath)) {
+      console.error('❌ DMG file not found:', dmgPath);
+      console.error('💡 Please run "npm run download-dmg" first to download the DMG file.');
+      throw new Error('DMG file not found. Download it first.');
     }
+    
+    console.log('💾 Found DMG file:', dmgPath);
+    const stats = fs.statSync(dmgPath);
+    const fileSize = (stats.size / 1024 / 1024).toFixed(2);
+    console.log('📊 DMG file size:', fileSize, 'MB');
 
     // Check for 7z
     console.log('🐧 Checking for required tools...');

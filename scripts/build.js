@@ -14,7 +14,7 @@ try {
   // Read Zalo version from backup file
   if (!fs.existsSync(APP_PACKAGE_BACKUP_PATH)) {
     console.error('❌ app/package.json.backup not found.');
-    console.error('💡 Please run "npm run extract-dmg" first to extract Zalo.');
+    console.error('💡 Please run "npm run setup" first to download and extract Zalo.');
     process.exit(1);
   }
   

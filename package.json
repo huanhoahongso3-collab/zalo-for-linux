@@ -6,8 +6,9 @@
   "scripts": {
     "start": "electron .",
     "build": "node scripts/build.js",
+    "download-dmg": "node scripts/download-dmg.js",
     "extract-dmg": "node scripts/extract-dmg.js",
-    "setup": "npm install && npm run extract-dmg"
+    "setup": "npm install && npm run download-dmg && npm run extract-dmg"
   },
   "keywords": [
     "zalo",
