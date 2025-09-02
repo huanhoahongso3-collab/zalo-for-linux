@@ -3,10 +3,10 @@ name: Build Zalo for Linux
 on:
   workflow_dispatch:
     inputs:
-      dmg_url:
-        description: 'Zalo DMG Download URL'
-        required: true
-        default: 'https://res-download-pc-te-vnso-pt-51.zadn.vn/mac/ZaloSetup-universal-25.5.3.dmg'
+      dmg_version:
+        description: 'Zalo Version (leave empty for latest)'
+        required: false
+        default: ''
         type: string
 
 permissions:
@@ -37,12 +37,11 @@ jobs:
     - name: Install Node.js dependencies
       run: npm ci --prefer-offline --no-audit
       
-    - name: Extract Zalo from DMG
+    - name: Setup Zalo (Download + Extract)
       env:
-        DMG_URL: ${{ github.event.inputs.dmg_url }}
+        DMG_VERSION: ${{ github.event.inputs.dmg_version }}
       run: |
-        echo "🚀 Starting extraction with DMG URL: $DMG_URL"
-        npm run extract-dmg
+        npm run setup
         
     - name: Build AppImage
       id: build
@@ -87,7 +86,7 @@ jobs:
           ## ⚠️ Important Notes
           - This is an **unofficial** port from the macOS version
           - Version automatically synced from official Zalo macOS app: **${{ steps.build.outputs.release_tag }}**
-          - Source DMG: `${{ github.event.inputs.dmg_url }}`
+          - Build mode: ${{ github.event.inputs.dmg_version && format('Specific version ({0})', github.event.inputs.dmg_version) || 'Latest version (auto-detected)' }}
           
           ## 📋 System Requirements
           - Linux x64

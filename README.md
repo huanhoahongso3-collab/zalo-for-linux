@@ -40,9 +40,12 @@ cd zalo-for-linux
 # Install project dependencies (Node.js required)
 npm install
 
-# Download and extract the latest Zalo macOS app.
-# You can find the latest URL on the Zalo homepage.
-DMG_URL="httpsa://res-download-pc-te-vnso-pt-51.zadn.vn/mac/ZaloSetup-universal-25.5.3.dmg" npm run extract-dmg
+# Download and extract the latest Zalo macOS app
+# Option 1: Auto-download latest version (recommended)
+npm run setup
+
+# Option 2: Download specific version
+DMG_VERSION="25.8.2" npm run setup
 
 # Build the AppImage
 npm run build
@@ -53,9 +56,183 @@ The final AppImage will be in the `dist/` directory.
 
 - `npm start`: Runs the app in development mode without packaging.
 - `npm run build`: Packages the application into an AppImage for Linux.
-- `npm run extract-dmg`: Only performs the download and extraction step.
-- `npm run reset-config`: Deletes the local Zalo data folder (`~/.config/ZaloData`) to fix potential corruption issues.
-- `npm run test`: An interactive script for easy local testing and building.
+- `npm run download-dmg`: Downloads the latest Zalo DMG file automatically, or uses DMG_VERSION if provided.
+- `npm run extract-dmg`: Extracts the Zalo app from an existing DMG file (shows interactive selection menu if multiple DMG files exist, unless DMG_VERSION is specified for auto-selection).
+- `npm run setup`: Downloads and extracts in sequence (equivalent to `download-dmg` + `extract-dmg`).
+
+### 📥 Download Modes  
+
+The download script supports two simple modes:
+
+**🆕 Auto Mode (Default - Recommended):**
+```bash
+npm run download-dmg
+# Automatically downloads the latest Zalo version from https://zalo.me/download/zalo-pc
+# Handles multiple redirects and shows detailed progress for large files
+```
+
+**🎯 Version Mode (Super Convenient):**
+```bash
+DMG_VERSION="25.8.2" npm run download-dmg
+# Just specify the version number! Script constructs the URL automatically
+# Uses pattern: https://res-download-pc.zadn.vn/mac/ZaloSetup-universal-VERSION.dmg
+# Zalo servers handle redirect to the actual download location
+```
+
+**🔄 Force Re-download:**
+```bash
+FORCE_DOWNLOAD=true npm run download-dmg
+# Forces re-download even if file already exists (works with both modes)
+```
+
+### 🎯 Usage Examples
+
+**Quick workflows:**
+```bash
+# Download latest + extract (may require interaction if multiple DMG files exist)
+npm run setup
+
+# Download specific version easily  
+DMG_VERSION="26.1.0" npm run download-dmg
+
+# Download + extract specific version (FULLY AUTOMATED - no interaction needed)
+DMG_VERSION="25.8.2" npm run setup
+```
+
+### 🤖 Fully Automated Setup
+
+When using `DMG_VERSION`, the entire workflow runs without user interaction:
+
+```bash
+# Completely automated - no user input required
+DMG_VERSION="25.8.2" npm run setup
+
+# This will:
+# 1. npm install (no interaction)
+# 2. Download version 25.8.2 (no interaction) 
+# 3. Auto-select version 25.8.2 for extraction (no interaction)
+# 4. Extract to app/ directory (no interaction)
+```
+
+**Perfect for CI/CD, scripts, and automated deployments!**
+
+## 📋 Quick Command Reference
+
+| **Use Case** | **Command** | **User Interaction?** |
+|--------------|-------------|----------------------|
+| 🚀 First time setup | `npm install && npm run setup && npm run build` | ⚠️ Maybe (if multiple DMG files) |
+| 🤖 **Automated setup** | `DMG_VERSION="25.8.2" npm install && npm run setup && npm run build` | ❌ **Never** |
+| 📥 Download only | `npm run download-dmg` | ❌ Never |
+| 📥 Download specific version | `DMG_VERSION="25.8.2" npm run download-dmg` | ❌ Never |
+| 🔧 Extract only | `npm run extract-dmg` | ⚠️ Maybe (interactive menu) |
+| 🔧 **Extract specific version** | `DMG_VERSION="25.8.2" npm run extract-dmg` | ❌ **Never** |
+| 👨‍💻 Development testing | `npm start` | ❌ Never |
+| 🏗️ Build AppImage | `npm run build` | ❌ Never |
+
+## 🌍 Environment Variables
+
+| **Variable** | **Description** | **Example** |
+|-------------|----------------|-------------|
+| `DMG_VERSION` | Specify exact Zalo version to download/extract | `DMG_VERSION="25.8.2"` |
+| `FORCE_DOWNLOAD` | Force re-download even if file exists | `FORCE_DOWNLOAD=true` |
+
+**Combine variables:**
+```bash
+DMG_VERSION="25.8.2" FORCE_DOWNLOAD=true npm run setup
+```
+
+### 🎯 Interactive DMG Selection
+
+When running `npm run extract-dmg` with multiple DMG files in the `temp/` directory:
+
+- **📋 Modern interface**: Arrow key navigation with radio button selection
+- **🔍 Smart sorting**: Files ordered by version (highest first), then by date
+- **📊 Detailed info**: Displays version, file size, and download date for each option
+- **⚡ Intuitive controls**: Use ↑↓ arrows to navigate, Enter to select, Esc to cancel
+- **🎯 Single file**: Auto-selects if only one DMG file exists
+
+**Example interactive session:**
+```
+📋 Available DMG files:
+   Use ↑↓ arrow keys to navigate, Enter to select, Esc to cancel
+
+  ● ZaloSetup-universal-26.1.0.dmg
+    Version: v26.1.0 | Size: 198.5MB | Date: 12/20/2024, 3:45:12 PM
+
+  ○ ZaloSetup-universal-25.8.2.dmg
+    Version: v25.8.2 | Size: 195.2MB | Date: 12/15/2024, 10:23:45 AM
+
+  ○ ZaloSetup-universal-25.5.3.dmg
+    Version: v25.5.3 | Size: 192.1MB | Date: 12/10/2024, 2:15:30 PM
+
+🎯 Selected: ZaloSetup-universal-26.1.0.dmg (v26.1.0)
+```
+
+**Navigation:**
+- **↑↓** Arrow keys to move selection
+- **Enter** to confirm selection  
+- **Esc** or **Ctrl+C** to cancel
+
+## 📁 Project Structure After Setup
+
+After running `npm run setup`, your project will look like:
+
+```
+zalo-for-linux/
+├── app/                     # ✅ Extracted Zalo app (ready for Electron)
+│   ├── package.json.backup  # Original Zalo version info
+│   ├── main.js              # Main Electron entry point
+│   ├── pc-dist/             # Web assets, icons, styles
+│   └── native/              # Native modules and bindings
+├── temp/                    # Downloaded DMG files (preserved)
+│   └── ZaloSetup-universal-*.dmg
+├── dist/                    # Built AppImage (after npm run build)
+│   └── Zalo-*.AppImage      # 🎉 Final Linux application
+├── main.js                  # Electron wrapper for Linux
+└── package.json             # Project configuration
+```
+
+## ❓ Troubleshooting
+
+### **🔍 Common Issues:**
+
+**Q: Extract shows "No DMG files found"**
+```bash
+# Solution: Download first
+npm run download-dmg
+# Then extract
+npm run extract-dmg
+```
+
+**Q: Extract shows interactive menu but I want automation**
+```bash
+# Solution: Use DMG_VERSION for auto-selection
+DMG_VERSION="25.8.2" npm run extract-dmg
+```
+
+**Q: Download fails with 404 error**
+```bash
+# The version doesn't exist. Check latest version:
+npm run download-dmg  # This will show the latest available version
+```
+
+**Q: Build fails with "package.json.backup not found"**
+```bash
+# Solution: Run extract first
+npm run setup  # This runs download + extract
+npm run build
+```
+
+**Q: Want to switch to different Zalo version**
+```bash
+# Solution: Force download new version
+DMG_VERSION="26.1.0" FORCE_DOWNLOAD=true npm run setup
+```
+
+### **📞 Need Help?**
+1. Check [Issues](https://github.com/doandat943/zalo-for-linux/issues) for known problems
+2. Run `npm run setup` for the complete workflow
+3. Use `DMG_VERSION="X.X.X"` for specific versions
 
 ## ⚙️ How It Works
 
