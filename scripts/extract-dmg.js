@@ -2,23 +2,20 @@ const fs = require('fs-extra');
 const path = require('path');
 const { execSync } = require('child_process');
 
-// DMG file will be auto-detected in temp directory
-const WORK_DIR = path.join(__dirname, '..', 'temp');
+const TEMP_DIR = path.join(__dirname, '..', 'temp');
 const APP_DIR = path.join(__dirname, '..', 'app');
 
 console.log('🔧 Starting Zalo DMG extraction process...');
-console.log('📂 Work directory:', WORK_DIR);
+console.log('📂 Work directory:', TEMP_DIR);
 
 // Create directories
-if (!fs.existsSync(WORK_DIR)) {
-  fs.mkdirSync(WORK_DIR, { recursive: true });
+if (!fs.existsSync(TEMP_DIR)) {
+  fs.mkdirSync(TEMP_DIR, { recursive: true });
 }
 
 if (fs.existsSync(APP_DIR)) {
   fs.rmSync(APP_DIR, { recursive: true, force: true });
 }
-
-
 
 function commandExists(command) {
   try {
@@ -142,24 +139,24 @@ async function showInteractiveMenu(files) {
 async function extractDMG() {
   try {
     // Find any DMG file in temp directory
-    console.log('🔍 Looking for DMG files in:', WORK_DIR);
+    console.log('🔍 Looking for DMG files in:', TEMP_DIR);
     
-    if (!fs.existsSync(WORK_DIR)) {
+    if (!fs.existsSync(TEMP_DIR)) {
       throw new Error('Temp directory not found. Please run "npm run download-dmg" first.');
     }
     
-    const files = fs.readdirSync(WORK_DIR);
+    const files = fs.readdirSync(TEMP_DIR);
     const dmgFiles = files.filter(file => file.toLowerCase().endsWith('.dmg'));
     
     if (dmgFiles.length === 0) {
-      console.error('❌ No DMG files found in:', WORK_DIR);
+      console.error('❌ No DMG files found in:', TEMP_DIR);
       console.error('💡 Please run "npm run download-dmg" first to download the DMG file.');
       throw new Error('No DMG files found. Download one first.');
     }
     
     // Prepare file list with versions and metadata
     const allFiles = dmgFiles.map(file => {
-      const filePath = path.join(WORK_DIR, file);
+      const filePath = path.join(TEMP_DIR, file);
       const stats = fs.statSync(filePath);
       const version = parseVersion(file);
       
@@ -235,7 +232,7 @@ async function extractDMG() {
     
     try {
       execSync(extractCommand, { 
-        cwd: WORK_DIR,
+        cwd: TEMP_DIR,
         stdio: 'pipe' // Suppress output to avoid seeing the "Headers Error" 
       });
     } catch (error) {
@@ -244,89 +241,9 @@ async function extractDMG() {
       console.log('⚠️  7z reported warnings/errors (this is normal for DMG files)');
     }
     
-    // Find Resources directory (contains both app.asar and app.asar.unpacked)
-    console.log('🔍 Looking for Zalo Resources directory...');
-    const findResourcesCommand = `find "${WORK_DIR}" -path "*/Zalo.app/Contents/Resources" -type d`;
-    let resourcesPaths;
-    
-    try {
-      const result = execSync(findResourcesCommand, { 
-        cwd: WORK_DIR,
-        encoding: 'utf8',
-        stdio: 'pipe'
-      });
-      resourcesPaths = result.trim().split('\n').filter(Boolean);
-    } catch (error) {
-      resourcesPaths = [];
-    }
-    
-    const resourcesPath = resourcesPaths[0];
-    
-    console.log('🎯 Found Resources at:', resourcesPath);
-    
-    // ZaDark Integration (always applied in this project)
-    console.log('🎨 Applying ZaDark patches...');
-    
-    try {
-      // Verify ZaDark module is available
-      const zadarkModulePath = path.join(__dirname, '..', 'temp', 'zadark', 'build', 'pc', 'zadark-pc.js');
-      if (!fs.existsSync(zadarkModulePath)) {
-        throw new Error('ZaDark PC module not found - run "npm run prepare-zadark" first');
-      }
-      
-      // Import ZaDark PC module
-      const zadarkPC = require(zadarkModulePath);
-      
-      console.log('🎯 Applying ZaDark patches to app.asar...');
-      await zadarkPC.installZaDark(resourcesPath);
-      console.log('✅ ZaDark patches applied successfully');
-      
-    } catch (error) {
-      console.error('❌ ZaDark integration failed:', error.message);
-      console.log('💡 Continuing with original app.asar...');
-    }
-    
-    // Copy ZaDark-processed app directory (ZaDark always converts app.asar to directory)
-    console.log('📁 Copying ZaDark-processed app directory...');
-    const appAsarPath = path.join(resourcesPath, 'app.asar');
-    fs.copySync(appAsarPath, APP_DIR);
-    
-    // Clean up extracted folders
-    console.log('🧹 Cleaning up extracted folders...');
-    const zaloFolders = execSync(`find "${WORK_DIR}" -name "Zalo*" -type d`, { 
-      cwd: WORK_DIR,
-      encoding: 'utf8',
-      stdio: 'pipe'
-    }).trim().split('\n').filter(Boolean);
-    
-    // Remove extracted folders
-    zaloFolders.forEach(folder => {
-      if (fs.existsSync(folder)) {
-        fs.rmSync(folder, { recursive: true, force: true });
-      }
-    });
-    
-    console.log('✅ App extracted to:', APP_DIR);
-    
-    // Rename package.json to package.json.backup to prevent electron-builder conflicts
-    const packageJsonPath = path.join(APP_DIR, 'package.json');
-    const packageJsonBackupPath = path.join(APP_DIR, 'package.json.backup');
-    
-    if (fs.existsSync(packageJsonPath)) {
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-      console.log('📋 App info:', packageJson.name, packageJson.version);
-      
-      // Rename to backup
-      fs.renameSync(packageJsonPath, packageJsonBackupPath);
-      console.log('📁 Renamed package.json → package.json.backup');
-    } else {
-      console.warn('⚠️  package.json not found in extracted app');
-    }
-    
     console.log('🎉 Extraction completed successfully!');
     console.log(`💾 DMG file preserved at: ${selectedFile.path}`);
-    console.log(`📁 Temp directory preserved at: ${WORK_DIR}`);
-    
+    console.log(`📁 Temp directory preserved at: ${TEMP_DIR}`);
   } catch (error) {
     console.error('💥 Extraction failed:', error.message);
     process.exit(1);

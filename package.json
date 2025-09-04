@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@electron/asar": "^3.2.10",
-    "electron": "22.3.27",
+    "electron": "^38.0.0",
     "electron-builder": "^24.13.3",
     "node-html-parser": "^7.0.1"
   },

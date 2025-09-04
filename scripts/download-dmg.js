@@ -5,13 +5,13 @@ const http = require('http');
 
 const ZALO_DOWNLOAD_PAGE = 'https://zalo.me/download/zalo-pc?utm=90000';
 const ZALO_DMG_PATTERN = 'https://res-download-pc.zadn.vn/mac/ZaloSetup-universal-VERSION.dmg';
-const WORK_DIR = path.join(__dirname, '..', 'temp');
+const TEMP_DIR = path.join(__dirname, '..', 'temp');
 
 console.log('📥 Starting Zalo DMG download process...');
 
 // Create directories
-if (!fs.existsSync(WORK_DIR)) {
-  fs.mkdirSync(WORK_DIR, { recursive: true });
+if (!fs.existsSync(TEMP_DIR)) {
+  fs.mkdirSync(TEMP_DIR, { recursive: true });
 }
 
 async function getLatestDMGUrl() {
@@ -174,7 +174,7 @@ async function downloadDMG() {
     // Extract filename from URL
     const urlPath = new URL(dmgUrl).pathname;
     const dmgFilename = path.basename(urlPath) || 'zalo.dmg';
-    const dmgPath = path.join(WORK_DIR, dmgFilename);
+    const dmgPath = path.join(TEMP_DIR, dmgFilename);
     
     console.log('📄 DMG filename:', dmgFilename);
     console.log('🎯 Download mode:', downloadMode);
