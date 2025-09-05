@@ -11,10 +11,8 @@ const TEMP_DIR = path.join(BASE_DIR, 'temp');
 const APP_DIR = path.join(BASE_DIR, 'app');
 
 const packageJsonPath = path.join(APP_DIR, 'package.json');
-const buildInfoPath = path.join(BASE_DIR, 'build-info.json');
 
 let ZALO_VERSION = null;
-let ZALO_NAME = null;
 
 async function extractAppAsar() {
     // Find Resources directory (contains both app.asar and app.asar.unpacked)
@@ -56,10 +54,20 @@ async function extractAppAsar() {
       const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
       
       // Store in global variables
-      ZALO_NAME = packageJson.name;
       ZALO_VERSION = packageJson.version;
       
-      console.log('📋 App info:', ZALO_NAME, ZALO_VERSION);
+      // Export common info to GitHub Actions (immediately after reading version)
+      if (process.env.GITHUB_OUTPUT) {
+        const releaseTag = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
+        
+        const commonOutputs = [
+          `release_tag=${releaseTag}`,
+          `zalo_version=${ZALO_VERSION}`
+        ];
+        commonOutputs.forEach(output => {
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, output + '\n');
+        });
+      }
       
       // Remove package.json to prevent electron-builder conflicts
       fs.unlinkSync(packageJsonPath);
@@ -128,11 +136,11 @@ async function buildZalo(buildName = '', outputSuffix = '') {
         }
       }
       
-      const customProductName = `${ZALO_NAME}-${ZALO_VERSION}+ZaDark-${zadarkVersion}`;
+      const customProductName = `Zalo-${ZALO_VERSION}+ZaDark-${zadarkVersion}`;
       buildCommand = `npx electron-builder --linux -c.productName="${customProductName}"`;
       console.log(`🔨 Building${buildName ? ` ${buildName}` : ''} with Zalo: ${ZALO_VERSION}, ZaDark: ${zadarkVersion}`);
     } else {
-      const customProductName = `${ZALO_NAME}-${ZALO_VERSION}`;
+      const customProductName = `Zalo-${ZALO_VERSION}`;
       buildCommand = `npx electron-builder --linux -c.productName="${customProductName}"`;
       console.log(`🔨 Building${buildName ? ` ${buildName}` : ''} with Zalo: ${ZALO_VERSION}`);
     }
@@ -185,37 +193,24 @@ async function buildZalo(buildName = '', outputSuffix = '') {
         console.log(files);
       }
 
-      // Export build info for GitHub Actions (only for ZaDark build)
-      if (outputSuffix === '-ZaDark') {
-        const buildInfo = {
-          releaseTag: ZALO_VERSION,
-          zaloName: ZALO_NAME,
-          appImageFile,
-          appImageName,
-          fileSize: fileSize ? (fileSize / 1024 / 1024).toFixed(2) + 'MB' : null,
-          fileSha256
-        };
+      // Export build info to GitHub Actions
+      if (process.env.GITHUB_OUTPUT) {
+        const fileSizeMB = fileSize ? (fileSize / 1024 / 1024).toFixed(2) + 'MB' : '';
+        const prefix = outputSuffix === '-ZaDark' ? 'zadark_' : 'original_';
+        
+        // Export build-specific info
+        const specificOutputs = [
+          `${prefix}appimage_file=${appImageFile || ''}`,
+          `${prefix}appimage_name=${appImageName || ''}`,
+          `${prefix}file_size=${fileSizeMB}`,
+          `${prefix}file_sha256=${fileSha256 || ''}`
+        ];
+        
+        specificOutputs.forEach(output => {
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, output + '\n');
+        });
 
-        // Write to file for workflow
-        fs.writeFileSync(buildInfoPath, JSON.stringify(buildInfo, null, 2));
-
-        // Export to GitHub Actions if running in CI
-        if (process.env.GITHUB_OUTPUT) {
-          const outputs = [
-            `release_tag=${ZALO_VERSION}`,
-            `zalo_name=${ZALO_NAME}`,
-            `appimage_file=${appImageFile || ''}`,
-            `appimage_name=${appImageName || ''}`,
-            `file_size=${buildInfo.fileSize || ''}`,
-            `file_sha256=${fileSha256 || ''}`
-          ];
-
-          outputs.forEach(output => {
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, output + '\n');
-          });
-
-          console.log('\n📋 Exported build info to GitHub Actions');
-        }
+        console.log(`\n📋 Exported ${prefix.replace('_', '')} build info to GitHub Actions`);
       }
 
     console.log(`\n🎉 Zalo ${ZALO_VERSION}${buildName ? ` ${buildName}` : ''} for Linux built successfully!`);
