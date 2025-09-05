@@ -147,51 +147,52 @@ async function buildZalo(buildName = '', outputSuffix = '') {
     
     console.log(`📝 Command: ${buildCommand}`);
     
-    execSync(buildCommand, { 
-      stdio: 'inherit',
-      cwd: path.join(BASE_DIR)
+    // Capture build output to get file information
+    const buildOutput = execSync(buildCommand, { 
+      stdio: 'pipe',
+      cwd: path.join(BASE_DIR),
+      encoding: 'utf8'
     });
     
     console.log(`✅ Completed!`);
-
-      // Find built AppImage
-      const distDir = path.join(BASE_DIR, 'dist');
-      let appImageFile = null;
-      let appImageName = null;
-      let fileSize = null;
-      let fileSha256 = null;
-
-      if (fs.existsSync(distDir)) {
-        console.log('\n📁 Built files:');
-        const files = fs.readdirSync(distDir)
-          .filter(f => f.endsWith('.AppImage') || f.endsWith('.yml'))
-          .sort()
-          .map(f => {
-            const filePath = path.join(distDir, f);
-            const size = fs.statSync(filePath).size;
-          const sizeStr = size > 1024 * 1024 
-            ? `${Math.round(size / 1024 / 1024)}MB`
-            : `${Math.round(size / 1024)}KB`;
-
-            // Store AppImage info
-            if (f.endsWith('.AppImage')) {
-              appImageFile = filePath;
-              appImageName = f;
-              fileSize = size;
-              // Calculate SHA256
-              try {
-              const sha256Output = execSync(`sha256sum "${filePath}"`, { encoding: 'utf8' });
-                fileSha256 = sha256Output.split(' ')[0];
-              } catch (error) {
-                console.warn('⚠️ Could not calculate SHA256');
-              }
-            }
-
-            return `  • ${f} (${sizeStr})`;
-          })
-          .join('\n');
-        console.log(files);
+    
+    // Debug: Show build output
+    console.log('\n🔍 Build Output:');
+    console.log(buildOutput);
+    
+    // Parse build output to find AppImage file
+    const appImageMatch = buildOutput.match(/file=(dist\/.*\.AppImage)/);
+    let appImageFile = null;
+    let appImageName = null;
+    let fileSize = null;
+    let fileSha256 = null;
+    
+    if (appImageMatch) {
+      appImageFile = appImageMatch[1];
+      appImageName = path.basename(appImageFile);
+      
+      console.log(`📦 AppImage: ${appImageFile}`);
+      
+      // Get file size
+      if (fs.existsSync(appImageFile)) {
+        fileSize = fs.statSync(appImageFile).size;
+        
+        console.log(`📏 Size: ${fileSize} bytes`);
+        
+        // Calculate SHA256
+        try {
+          const sha256Output = execSync(`sha256sum "${appImageFile}"`, { encoding: 'utf8' });
+          fileSha256 = sha256Output.split(' ')[0];
+          console.log(`🔐 SHA256: ${fileSha256}`);
+        } catch (error) {
+          console.warn('⚠️ Could not calculate SHA256');
+        }
+      } else {
+        console.warn(`⚠️ AppImage file not found: ${appImageFile}`);
       }
+    } else {
+      console.warn('⚠️ Could not find AppImage in build output');
+    }
 
       // Export build info to GitHub Actions
       if (process.env.GITHUB_OUTPUT) {
@@ -212,9 +213,6 @@ async function buildZalo(buildName = '', outputSuffix = '') {
 
         console.log(`\n📋 Exported ${prefix.replace('_', '')} build info to GitHub Actions`);
       }
-
-    console.log(`\n🎉 Zalo ${ZALO_VERSION}${buildName ? ` ${buildName}` : ''} for Linux built successfully!`);
-    
   } catch (error) {
     console.error('💥 Build failed:', error.message);
     process.exit(1);
