@@ -97,7 +97,7 @@ async function ZaDarkIntegration() {
     
   try {
     // Verify ZaDark module is available
-    const zadarkModulePath = path.join(BASE_DIR, 'temp', 'zadark', 'build', 'pc', 'zadark-pc.js');
+    const zadarkModulePath = path.join(BASE_DIR, 'temp', 'zadark', 'src', 'pc', 'zadark-pc.js');
     if (!fs.existsSync(zadarkModulePath)) {
       throw new Error('ZaDark PC module not found - run "npm run prepare-zadark" first');
     }
@@ -120,8 +120,10 @@ async function ZaDarkIntegration() {
 
 async function buildZalo(buildName = '', outputSuffix = '') {
   try {
-    // Build with custom product name if suffix provided
+    // Set artifact name and build command based on build type
+    let artifactName;
     let buildCommand;
+    
     if (outputSuffix === '-ZaDark') {
       // Read ZaDark version for custom naming
       const zadarkPackagePath = path.join(BASE_DIR, 'temp', 'zadark', 'package.json');
@@ -136,15 +138,14 @@ async function buildZalo(buildName = '', outputSuffix = '') {
         }
       }
       
-      const customProductName = `Zalo-${ZALO_VERSION}+ZaDark-${zadarkVersion}`;
-      buildCommand = `npx electron-builder --linux -c.productName="${customProductName}"`;
+      artifactName = `Zalo-${ZALO_VERSION}+ZaDark-${zadarkVersion}.AppImage`;
+      buildCommand = `npx electron-builder --linux --config.artifactName="${artifactName}" -c.extraMetadata.version=${ZALO_VERSION}`;
       console.log(`🔨 Building${buildName ? ` ${buildName}` : ''} with Zalo: ${ZALO_VERSION}, ZaDark: ${zadarkVersion}`);
     } else {
-      const customProductName = `Zalo-${ZALO_VERSION}`;
-      buildCommand = `npx electron-builder --linux -c.productName="${customProductName}"`;
+      artifactName = `Zalo-${ZALO_VERSION}.AppImage`;
+      buildCommand = `npx electron-builder --linux --config.artifactName="${artifactName}" -c.extraMetadata.version=${ZALO_VERSION}`;
       console.log(`🔨 Building${buildName ? ` ${buildName}` : ''} with Zalo: ${ZALO_VERSION}`);
     }
-    
     console.log(`📝 Command: ${buildCommand}`);
     
     // Capture build output to get file information

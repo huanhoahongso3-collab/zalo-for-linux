@@ -8,6 +8,10 @@ An unofficial, community-driven port of the Zalo desktop application for **Linux
 
 - **Message Synchronization (E2EE):** Due to missing native macOS libraries for End-to-End Encryption, messages in encrypted chats **will not synchronize** automatically on a fresh install.
 - **Workaround:** A community-found solution involves using **Wine** to run the Windows version of Zalo to perform the initial data sync, and then migrating the data to this Linux version. For more details, see [issue #1](https://github.com/realdtn2/zalo-linux-unofficial-2024/issues/1).
+- **Can't make or receive calls:** Due to missing native macOS libraries
+- **No Photos/Videos, Files and Links on the Conversation Info panel** for some reason (you can still viewing image/video, file or link like normal, it just don't appear on the conversation info panel like this)
+- There is **no Minimize, Maximize or Close button:** The macOS title bar is not available when porting to Linux
+- Crash when click **Screenshot without Zalo window button**
 
 This project is best suited for users who need a native-feeling Zalo client on Linux and are comfortable with the technical workarounds required for full functionality.
 
