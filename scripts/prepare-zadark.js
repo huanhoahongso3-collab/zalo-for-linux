@@ -17,8 +17,8 @@ console.log('🎨 Preparing ZaDark...');
 async function prepareZaDark() {
   try {
     await ensureZaDarkSource();
-    await buildZaDarkAssets();
     await addRequiredExports();
+    await buildZaDarkAssets();
     
     console.log('🎉 ZaDark preparation completed successfully!');
     console.log(`📁 ZaDark ready at: ${ZADARK_DIR}`);

@@ -97,7 +97,7 @@ async function ZaDarkIntegration() {
     
   try {
     // Verify ZaDark module is available
-    const zadarkModulePath = path.join(BASE_DIR, 'temp', 'zadark', 'src', 'pc', 'zadark-pc.js');
+    const zadarkModulePath = path.join(BASE_DIR, 'temp', 'zadark', 'build', 'pc', 'zadark-pc.js');
     if (!fs.existsSync(zadarkModulePath)) {
       throw new Error('ZaDark PC module not found - run "npm run prepare-zadark" first');
     }
