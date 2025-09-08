@@ -89,6 +89,26 @@ async function extractAppAsar() {
         fs.rmSync(folder, { recursive: true, force: true });
       }
     });
+
+    // Patch main.js to enable title bar (T,frame:!1 -> T,frame:!0)
+    console.log('🔧 Patching frame settings for title bar...');
+    const mainJsPath = path.join(APP_DIR, 'main-dist', 'main.js');
+    if (fs.existsSync(mainJsPath)) {
+      let mainJsContent = fs.readFileSync(mainJsPath, 'utf8');
+      
+      const targetPattern = 'T,frame:!1';
+      const replacement = 'T,frame:!0';
+      
+      if (mainJsContent.includes(targetPattern)) {
+        mainJsContent = mainJsContent.replace(targetPattern, replacement);
+        fs.writeFileSync(mainJsPath, mainJsContent);
+        console.log('✅ Patched T,frame:!1 -> T,frame:!0 (title bar enabled)');
+      } else {
+        console.log('⚠️  Pattern T,frame:!1 not found in main.js');
+      }
+    } else {
+      console.log('⚠️  main.js not found');
+    }
 }
 
 async function ZaDarkIntegration() {

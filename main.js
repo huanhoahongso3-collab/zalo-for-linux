@@ -1,8 +1,26 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-// Minimal wrapper - let Zalo do everything
+// Hide native menu bar but keep title bar
+app.on('browser-window-created', (_evt, win) => {
+  try {
+    // Hide menu bar (Edit/View/Window) but keep title bar with min/max/close buttons
+    win.setMenuBarVisibility(false);
+    if (win.removeMenu) win.removeMenu();
+    win.autoHideMenuBar = true;
+    
+    console.log('Window created - menu bar hidden, title bar should be visible');
+  } catch (e) {
+    console.log('Error in browser-window-created:', e);
+  }
+});
+
+app.once('ready', () => {
+  try { Menu.setApplicationMenu(null); } catch (_) {}
+});
+
+// Skip normal Electron app setup and go straight to Zalo
 function bootstrap() {
   // Check if extracted app exists
   // Try development path first, then production path
@@ -30,5 +48,4 @@ function bootstrap() {
   }
 }
 
-// Skip normal Electron app setup and go straight to Zalo
 bootstrap();
