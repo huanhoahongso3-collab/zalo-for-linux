@@ -7,109 +7,9 @@ const path = require('path');
 console.log('🚀 Building Zalo for Linux...');
 
 const BASE_DIR = path.join(__dirname, '..');
-const TEMP_DIR = path.join(BASE_DIR, 'temp');
 const APP_DIR = path.join(BASE_DIR, 'app');
 
-const packageJsonPath = path.join(APP_DIR, 'package.json');
-
 let ZALO_VERSION = null;
-
-async function extractAppAsar() {
-    // Find Resources directory (contains both app.asar and app.asar.unpacked)
-    console.log('🔍 Looking for Zalo Resources directory...');
-    const findResourcesCommand = `find "${TEMP_DIR}" -path "*/Zalo.app/Contents/Resources" -type d`;
-    let resourcesPaths;
-    
-    try {
-      const result = execSync(findResourcesCommand, { 
-        cwd: TEMP_DIR,
-        encoding: 'utf8',
-        stdio: 'pipe'
-      });
-      resourcesPaths = result.trim().split('\n').filter(Boolean);
-    } catch (error) {
-      resourcesPaths = [];
-    }
-    const resourcesPath = resourcesPaths[0];
-    
-    console.log('🎯 Found Resources at:', resourcesPath);
-    
-    // Extract app.asar to final location (asar module will automatically handle unpacked files)
-    console.log('📂 Extracting app.asar to app directory...');
-    const asarModule = require('@electron/asar');
-    
-    // Set the working directory to Resources so that unpacked files are resolved correctly
-    const originalCwd = process.cwd();
-    try {
-      process.chdir(resourcesPath);
-      await asarModule.extractAll('app.asar', APP_DIR);
-    } finally {
-      process.chdir(originalCwd);
-    }
-    
-    console.log('✅ App extracted to:', APP_DIR);
-    
-    // Read app info and remove package.json to prevent electron-builder conflicts
-    if (fs.existsSync(packageJsonPath)) {
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-      
-      // Store in global variables
-      ZALO_VERSION = packageJson.version;
-      
-      // Export common info to GitHub Actions (immediately after reading version)
-      if (process.env.GITHUB_OUTPUT) {
-        const releaseTag = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
-        
-        const commonOutputs = [
-          `release_tag=${releaseTag}`,
-          `zalo_version=${ZALO_VERSION}`
-        ];
-        commonOutputs.forEach(output => {
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, output + '\n');
-        });
-      }
-      
-      // Remove package.json to prevent electron-builder conflicts
-      fs.unlinkSync(packageJsonPath);
-      console.log('🗑️  Removed package.json (stored version info)');
-    } else {
-      console.warn('⚠️  package.json not found in extracted app');
-    }
-    
-    // Clean up extracted DMG folders
-    console.log('🧹 Cleaning up extracted folders...');
-    const zaloFolders = execSync(`find "${TEMP_DIR}" -name "Zalo*" -type d`, { 
-      cwd: TEMP_DIR,
-      encoding: 'utf8',
-      stdio: 'pipe'
-    }).trim().split('\n').filter(Boolean);
-    
-    zaloFolders.forEach(folder => {
-      if (fs.existsSync(folder)) {
-        fs.rmSync(folder, { recursive: true, force: true });
-      }
-    });
-
-    // Patch main.js to enable title bar (T,frame:!1 -> T,frame:!0)
-    console.log('🔧 Patching frame settings for title bar...');
-    const mainJsPath = path.join(APP_DIR, 'main-dist', 'main.js');
-    if (fs.existsSync(mainJsPath)) {
-      let mainJsContent = fs.readFileSync(mainJsPath, 'utf8');
-      
-      const targetPattern = 'T,frame:!1';
-      const replacement = 'T,frame:!0';
-      
-      if (mainJsContent.includes(targetPattern)) {
-        mainJsContent = mainJsContent.replace(targetPattern, replacement);
-        fs.writeFileSync(mainJsPath, mainJsContent);
-        console.log('✅ Patched T,frame:!1 -> T,frame:!0 (title bar enabled)');
-      } else {
-        console.log('⚠️  Pattern T,frame:!1 not found in main.js');
-      }
-    } else {
-      console.log('⚠️  main.js not found');
-    }
-}
 
 async function ZaDarkIntegration() {
   // ZaDark Integration (always applied in this project)
@@ -243,10 +143,32 @@ async function buildZalo(buildName = '', outputSuffix = '') {
 // Main workflow execution
 async function main() {
   try {
-    // Phase 1: Extract asar and build original Zalo
+    // Read version from package.json.bak
+    const packageJsonBakPath = path.join(APP_DIR, 'package.json.bak');
+    if (fs.existsSync(packageJsonBakPath)) {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonBakPath, 'utf8'));
+      ZALO_VERSION = packageJson.version;
+      console.log('📝 Read Zalo version from package.json.bak:', ZALO_VERSION);
+      
+      // Export common info to GitHub Actions (immediately after reading version)
+      if (process.env.GITHUB_OUTPUT) {
+        const releaseTag = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
+        
+        const commonOutputs = [
+          `release_tag=${releaseTag}`,
+          `zalo_version=${ZALO_VERSION}`
+        ];
+        commonOutputs.forEach(output => {
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, output + '\n');
+        });
+      }
+    } else {
+      console.warn('⚠️  package.json.bak not found, version will be unknown');
+    }
+    
+    // Phase 1: Build original Zalo
     console.log('\n🔥 PHASE 1: Building Zalo (Original)...\n');
     
-    await extractAppAsar();
     await buildZalo('(Original)', '');
     
     // Phase 2: Apply ZaDark integration and build final product

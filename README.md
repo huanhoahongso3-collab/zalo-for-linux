@@ -15,6 +15,7 @@ Thanks **realdtn2** for the solution: [realdtn2/zalo-linux-unofficial-2024](http
 - Crash when click **Screenshot without Zalo window button**
 - **✅ Fixed: No title bar with minimize/maximize/close buttons** - Thanks to [@NanKillBro](https://github.com/NanKillBro) for the solution. For more details, see [issue #4](https://github.com/doandat943/zalo-for-linux/issues/4)
 - **No tray menu icon**: Fix soon
+
 This project is best suited for users who need a native-feeling Zalo client on Linux and are comfortable with the technical workarounds required for full functionality.
 
 ## 🌙 ZaDark Integration
@@ -76,12 +77,12 @@ The final AppImage will be in the `dist/` directory!
 ## 🛠️ Development Scripts
 
 | **Command** | **Description** |
-|-------------|----------------|-------------|
-| `npm run setup`* | Equal `download-dmg` + `extract-dmg` + `prepare-zadark` |
+|-------------|----------------|
+| `npm run setup`* | Equal `download-dmg` + `prepare-zadark` + `prepare-app` |
 | `npm run start` | Runs the app in development mode |
 | `npm run build` | Builds AppImage |
 | `npm run download-dmg`* | Download Zalo DMG |
-| `npm run extract-dmg`* | Extract Zalo DMG |
+| `npm run prepare-app`* | Extract Zalo DMG |
 | `npm run prepare-zadark` | Clones and builds ZaDark assets for later integration |
 
 ## 🌍 Environment Variables
@@ -100,7 +101,7 @@ npm run download-dmg
 
 # If only one DMG file in `temp/` directory, auto select that file and extract
 # If multiple DMG file in `temp/` directory, show DMG selection menu
-npm run extract-dmg
+npm run prepare-app
 
 # Automatically downloads the latest Zalo version from https://zalo.me/download/zalo-pc
 # Extract DMG version selected from previous step
@@ -116,7 +117,7 @@ npm run setup
 DMG_VERSION="25.8.2" npm run download-dmg
 
 # Extract DMG version specificed
-DMG_VERSION="25.8.2" npm run extract-dmg
+DMG_VERSION="25.8.2" npm run prepare-app
 
 # Forces re-download even if file already exists
 FORCE_DOWNLOAD=true npm run download-dmg
@@ -128,7 +129,7 @@ DMG_VERSION="25.8.2" FORCE_DOWNLOAD=true npm run setup
 
 ### 🎯 Interactive DMG Selection
 
-When running `npm run extract-dmg` with multiple DMG files in the `temp/` directory:
+When running `npm run prepare-app` with multiple DMG files in the `temp/` directory:
 
 - **📋 Modern interface**: Arrow key navigation with radio button selection
 - **🔍 Smart sorting**: Files ordered by version (highest first), then by date

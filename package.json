@@ -7,9 +7,9 @@
     "start": "electron .",
     "build": "node scripts/build.js",
     "download-dmg": "node scripts/download-dmg.js",
-    "extract-dmg": "node scripts/extract-dmg.js",
+    "prepare-app": "node scripts/prepare-app.js",
     "prepare-zadark": "node scripts/prepare-zadark.js",
-    "setup": "npm install && npm run download-dmg && npm run prepare-zadark && npm run extract-dmg"
+    "setup": "npm install && npm run download-dmg && npm run prepare-zadark && npm run prepare-app"
   },
   "keywords": [
     "zalo",
