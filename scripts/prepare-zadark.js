@@ -10,7 +10,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const ZADARK_REPO = 'https://github.com/quaric/zadark.git';
-const ZADARK_DIR = path.join(__dirname, '..', 'temp', 'zadark');
+const ZADARK_DIR = path.join(__dirname, '..', 'plugins', 'zadark');
 
 console.log('🎨 Preparing ZaDark...');
 
@@ -31,19 +31,11 @@ async function prepareZaDark() {
 
 async function ensureZaDarkSource() {
   if (!fs.existsSync(ZADARK_DIR)) {
-    console.log('📥 Cloning ZaDark repository...');
-    
-    const tempDir = path.dirname(ZADARK_DIR);
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-    
-    execSync(`git clone ${ZADARK_REPO} "${ZADARK_DIR}"`, {
-      stdio: 'inherit',
-      cwd: tempDir
-    });
+    console.log('❌ ZaDark submodule not found!');
+    console.log('💡 Please run: git submodule update --init --recursive');
+    throw new Error('ZaDark submodule not initialized. Run "git submodule update --init --recursive"');
   } else {
-    console.log('📁 ZaDark source found, checking for updates...');
+    console.log('📁 ZaDark submodule found, checking for updates...');
     await updateZaDarkSource();
   }
 }

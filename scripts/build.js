@@ -17,7 +17,7 @@ async function ZaDarkIntegration() {
     
   try {
     // Verify ZaDark module is available
-    const zadarkModulePath = path.join(BASE_DIR, 'temp', 'zadark', 'build', 'pc', 'zadark-pc.js');
+    const zadarkModulePath = path.join(BASE_DIR, 'plugins', 'zadark', 'build', 'pc', 'zadark-pc.js');
     if (!fs.existsSync(zadarkModulePath)) {
       throw new Error('ZaDark PC module not found - run "npm run prepare-zadark" first');
     }
@@ -46,7 +46,7 @@ async function buildZalo(buildName = '', outputSuffix = '') {
     
     if (outputSuffix === '-ZaDark') {
       // Read ZaDark version for custom naming
-      const zadarkPackagePath = path.join(BASE_DIR, 'temp', 'zadark', 'package.json');
+      const zadarkPackagePath = path.join(BASE_DIR, 'plugins', 'zadark', 'package.json');
       let zadarkVersion = 'unknown';
       
       if (fs.existsSync(zadarkPackagePath)) {
