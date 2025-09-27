@@ -62,11 +62,11 @@ async function buildZalo(buildName = '', outputSuffix = '') {
       }
       
       artifactName = `Zalo-${ZALO_VERSION}+ZaDark-${zadarkVersion}-${buildDate}.AppImage`;
-      buildCommand = `npx electron-builder --linux --config.linux.artifactName="${artifactName}" -c.extraMetadata.version=${ZALO_VERSION} --publish=always;
+      buildCommand = `npx electron-builder --linux --config.linux.artifactName="${artifactName}" -c.extraMetadata.version=${ZALO_VERSION} --publish=always`;
       console.log(`🔨 Building${buildName ? ` ${buildName}` : ''} with Zalo: ${ZALO_VERSION}, ZaDark: ${zadarkVersion}, Date: ${buildDate}`);
     } else {
       artifactName = `Zalo-${ZALO_VERSION}-${buildDate}.AppImage`;
-      buildCommand = `npx electron-builder --linux --config.linux.artifactName="${artifactName}" -c.extraMetadata.version=${ZALO_VERSION} --publish=always;
+      buildCommand = `npx electron-builder --linux --config.linux.artifactName="${artifactName}" -c.extraMetadata.version=${ZALO_VERSION} --publish=always`;
       console.log(`🔨 Building${buildName ? ` ${buildName}` : ''} with Zalo: ${ZALO_VERSION}, Date: ${buildDate}`);
     }
     console.log(`📝 Command: ${buildCommand}`);
