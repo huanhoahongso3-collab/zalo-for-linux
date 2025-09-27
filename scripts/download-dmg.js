@@ -155,9 +155,9 @@ async function downloadDMG() {
     let dmgUrl;
     let downloadMode;
     
-    if (process.env.DMG_VERSION) {
+    if (process.env.ZALO_VERSION) {
       // Mode 1: Version-based URL construction  
-      const version = process.env.DMG_VERSION.trim();
+      const version = process.env.ZALO_VERSION.trim();
       dmgUrl = ZALO_DMG_PATTERN.replace('VERSION', version);
       downloadMode = 'version';
       console.log('🎯 Using version-based download');
@@ -219,7 +219,7 @@ async function downloadDMG() {
   } catch (error) {
     console.error('💥 Download failed:', error.message);
     if (error.message.includes('Request timeout') || error.message.includes('No DMG link found')) {
-      console.error('💡 If auto-detection failed, try specifying a version: DMG_VERSION="25.8.2" npm run download-dmg');
+      console.error('💡 If auto-detection failed, try specifying a version: ZALO_VERSION="25.8.2" npm run download-dmg');
     }
     process.exit(1);
   }

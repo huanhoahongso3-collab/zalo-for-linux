@@ -35,52 +35,7 @@ async function ensureZaDarkSource() {
     console.log('💡 Please run: git submodule update --init --recursive');
     throw new Error('ZaDark submodule not initialized. Run "git submodule update --init --recursive"');
   } else {
-    console.log('📁 ZaDark submodule found, checking for updates...');
-    await updateZaDarkSource();
-  }
-}
-
-async function updateZaDarkSource() {
-  let sourceUpdated = false;
-  
-  try {
-    // Pull latest changes (always use fresh code)
-    sourceUpdated = await pullLatestChanges();
-    
-    // If source was updated, clean build artifacts to force rebuild
-    if (sourceUpdated) {
-      console.log('🧹 Cleaning old build artifacts...');
-      const buildDir = path.join(ZADARK_DIR, 'build');
-      if (fs.existsSync(buildDir)) {
-        fs.rmSync(buildDir, { recursive: true, force: true });
-      }
-      const nodeModules = path.join(ZADARK_DIR, 'node_modules');
-      if (fs.existsSync(nodeModules)) {
-        fs.rmSync(nodeModules, { recursive: true, force: true });
-      }
-    }
-    
-  } catch (error) {
-    console.log('⚠️  Git operations failed, continuing with existing version');
-    console.log('Error:', error.message);
-  }
-  
-  return sourceUpdated;
-}
-
-async function pullLatestChanges() {
-  const pullResult = execSync('git pull origin main', {
-    cwd: ZADARK_DIR,
-    stdio: 'pipe',
-    encoding: 'utf8'
-  });
-  
-  if (pullResult.includes('Already up to date')) {
-    console.log('✅ ZaDark source is already up to date');
-    return false;
-  } else {
-    console.log('✅ ZaDark source updated');
-    return true;
+    console.log('📁 ZaDark submodule found');
   }
 }
 

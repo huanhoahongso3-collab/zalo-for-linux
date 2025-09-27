@@ -40,6 +40,9 @@ async function ZaDarkIntegration() {
 
 async function buildZalo(buildName = '', outputSuffix = '') {
   try {
+    // Get build date for filename
+    const buildDate = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
+    
     // Set artifact name and build command based on build type
     let artifactName;
     let buildCommand;
@@ -58,13 +61,13 @@ async function buildZalo(buildName = '', outputSuffix = '') {
         }
       }
       
-      artifactName = `Zalo-${ZALO_VERSION}+ZaDark-${zadarkVersion}.AppImage`;
+      artifactName = `Zalo-${ZALO_VERSION}+ZaDark-${zadarkVersion}-${buildDate}.AppImage`;
       buildCommand = `npx electron-builder --linux --config.artifactName="${artifactName}" -c.extraMetadata.version=${ZALO_VERSION}`;
-      console.log(`🔨 Building${buildName ? ` ${buildName}` : ''} with Zalo: ${ZALO_VERSION}, ZaDark: ${zadarkVersion}`);
+      console.log(`🔨 Building${buildName ? ` ${buildName}` : ''} with Zalo: ${ZALO_VERSION}, ZaDark: ${zadarkVersion}, Date: ${buildDate}`);
     } else {
-      artifactName = `Zalo-${ZALO_VERSION}.AppImage`;
+      artifactName = `Zalo-${ZALO_VERSION}-${buildDate}.AppImage`;
       buildCommand = `npx electron-builder --linux --config.artifactName="${artifactName}" -c.extraMetadata.version=${ZALO_VERSION}`;
-      console.log(`🔨 Building${buildName ? ` ${buildName}` : ''} with Zalo: ${ZALO_VERSION}`);
+      console.log(`🔨 Building${buildName ? ` ${buildName}` : ''} with Zalo: ${ZALO_VERSION}, Date: ${buildDate}`);
     }
     console.log(`📝 Command: ${buildCommand}`);
     
@@ -149,19 +152,7 @@ async function main() {
       const packageJson = JSON.parse(fs.readFileSync(packageJsonBakPath, 'utf8'));
       ZALO_VERSION = packageJson.version;
       console.log('📝 Read Zalo version from package.json.bak:', ZALO_VERSION);
-      
-      // Export common info to GitHub Actions (immediately after reading version)
-      if (process.env.GITHUB_OUTPUT) {
-        const releaseTag = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
-        
-        const commonOutputs = [
-          `release_tag=${releaseTag}`,
-          `zalo_version=${ZALO_VERSION}`
-        ];
-        commonOutputs.forEach(output => {
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, output + '\n');
-        });
-      }
+
     } else {
       console.warn('⚠️  package.json.bak not found, version will be unknown');
     }

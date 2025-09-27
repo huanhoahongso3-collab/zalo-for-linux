@@ -264,9 +264,9 @@ async function extractDMG() {
     if (sortedFiles.length === 1) {
       selectedFile = sortedFiles[0];
       console.log(`\n🎯 Only one file found, auto-selecting: ${selectedFile.name}`);
-    } else if (process.env.DMG_VERSION) {
-      // Auto-select matching version when DMG_VERSION is specified
-      const requestedVersion = process.env.DMG_VERSION.trim();
+    } else if (process.env.ZALO_VERSION) {
+      // Auto-select matching version when ZALO_VERSION is specified
+      const requestedVersion = process.env.ZALO_VERSION.trim();
       const matchingFile = sortedFiles.find(file => 
         file.version && file.version.raw === requestedVersion
       );
