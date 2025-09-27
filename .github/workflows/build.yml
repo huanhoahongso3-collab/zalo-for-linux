@@ -81,10 +81,7 @@ jobs:
       with:
         tag_name: ${{ steps.build.outputs.zalo_version }}
         name: ${{ steps.build.outputs.zalo_version }}
-        body: |          
-          🎉 **Unofficial Zalo port for Linux systems**
-          - Zalo version: **${{ steps.build.outputs.zalo_version }}**
-
+        body: |
           ## 🚀 How to use
           
           It is recommended to use [Gear Lever](https://github.com/mijorus/gearlever) to manage and integrate the AppImage.
