@@ -52,9 +52,11 @@ jobs:
 
     - name: Setup and Build
       env:
+        CI: true
         ZALO_VERSION: ${{ github.event.inputs.zalo_version }}
         ZADARK_VERSION: ${{ github.event.inputs.zadark_version }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
       run: |
         npm run setup
         npm run build

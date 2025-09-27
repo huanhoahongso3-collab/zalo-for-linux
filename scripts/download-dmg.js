@@ -14,40 +14,112 @@ if (!fs.existsSync(TEMP_DIR)) {
   fs.mkdirSync(TEMP_DIR, { recursive: true });
 }
 
-async function getLatestDMGUrl() {
+async function getLatestZaloVersion() {
   return new Promise((resolve, reject) => {
-    console.log('🔍 Getting latest DMG URL from Zalo...');
-    console.log('📦 Checking:', ZALO_DOWNLOAD_PAGE);
-    
-    const options = {
+    const request = https.get(ZALO_DOWNLOAD_PAGE, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
-    };
-    
-    const request = https.get(ZALO_DOWNLOAD_PAGE, options, (response) => {
+    }, (response) => {
       if (response.statusCode === 302 || response.statusCode === 301) {
         const redirectUrl = response.headers.location;
-        console.log('🎯 Found redirect to:', redirectUrl);
-        
-        // Check if redirect is a DMG file
         if (redirectUrl && redirectUrl.includes('.dmg')) {
-          resolve(redirectUrl);
+          const match = redirectUrl.match(/ZaloSetup-universal-([0-9.]+)\.dmg/);
+          if (match) {
+            resolve(match[1]);
+          } else {
+            reject(new Error('Could not parse version from DMG URL'));
+          }
         } else {
           reject(new Error('Redirect URL is not a DMG file'));
         }
         return;
       }
-      
-      reject(new Error(`Unexpected HTTP ${response.statusCode}: ${response.statusMessage}. Expected redirect to DMG file.`));
+      reject(new Error(`Unexpected HTTP ${response.statusCode}`));
     });
     
     request.on('error', reject);
     request.setTimeout(10000, () => {
       request.destroy();
-      reject(new Error('Request timeout while getting latest DMG URL'));
+      reject(new Error('Request timeout'));
     });
   });
+}
+
+async function getCurrentZaloVersion() {
+  return new Promise((resolve) => {
+    if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_REPOSITORY) {
+      resolve('');
+      return;
+    }
+    
+    const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+    const options = {
+      hostname: 'api.github.com',
+      path: `/repos/${owner}/${repo}/releases/latest`,
+      headers: {
+        'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+        'User-Agent': 'Node.js'
+      }
+    };
+    
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          const release = JSON.parse(data);
+          resolve(release.tag_name || '');
+        } catch (error) {
+          resolve('');
+        }
+      });
+    });
+    
+    req.on('error', () => resolve(''));
+    req.setTimeout(10000, () => {
+      req.destroy();
+      resolve('');
+    });
+    req.end();
+  });
+}
+
+async function checkZaloVersionInCI() {
+  if (process.env.CI !== 'true') {
+    return null; // Not in CI, skip version check
+  }
+  
+  try {
+    console.log('🤖 CI mode: Checking Zalo version...');
+    
+    // Get latest Zalo version
+    const latestVersion = await getLatestZaloVersion();
+    console.log(`📱 Latest Zalo version: ${latestVersion}`);
+    
+    // Get current release version from GitHub
+    const currentVersion = await getCurrentZaloVersion();
+    console.log(`📦 Current release version: ${currentVersion || 'none'}`);
+    
+    // Check if manual version specified
+    if (process.env.ZALO_VERSION) {
+      console.log(`🔧 Manual Zalo version specified: ${process.env.ZALO_VERSION}`);
+      return process.env.ZALO_VERSION;
+    }
+    
+    // Check if version changed
+    if (latestVersion !== currentVersion) {
+      console.log('✨ New Zalo version detected, proceeding with download');
+      return latestVersion;
+    } else {
+      console.log('✅ Zalo version is up to date');
+      return null; // Skip download
+    }
+    
+  } catch (error) {
+    console.warn(`⚠️  Zalo version check failed: ${error.message}, proceeding with download`);
+    return process.env.ZALO_VERSION || null;
+  }
 }
 
 async function downloadFile(url, destination, redirectCount = 0) {
@@ -151,24 +223,31 @@ async function downloadFile(url, destination, redirectCount = 0) {
 
 async function downloadDMG() {
   try {
+    // CI mode: check version and decide whether to download
+    const ciVersion = await checkZaloVersionInCI();
+    if (process.env.CI === 'true' && ciVersion === null) {
+      console.log('ℹ️  Zalo version is up to date, skipping download');
+      return;
+    }
+    
     // Determine download URL - Simple 2 modes
     let dmgUrl;
     let downloadMode;
     
-    if (process.env.ZALO_VERSION) {
+    if (process.env.ZALO_VERSION || ciVersion) {
       // Mode 1: Version-based URL construction  
-      const version = process.env.ZALO_VERSION.trim();
+      const version = (process.env.ZALO_VERSION || ciVersion).trim();
       dmgUrl = ZALO_DMG_PATTERN.replace('VERSION', version);
       downloadMode = 'version';
-      console.log('🎯 Using version-based download');
       console.log('📦 Version:', version);
       console.log('🔗 Constructed URL:', dmgUrl);
     } else {
-      // Mode 2: Auto-latest (default)
+      // Mode 2: Auto-latest using version detection
       downloadMode = 'latest';
-      console.log('🆕 Auto-downloading latest version from Zalo...');
-      dmgUrl = await getLatestDMGUrl();
-      console.log('✅ Latest DMG URL obtained:', dmgUrl);
+      const version = await getLatestZaloVersion();
+      dmgUrl = ZALO_DMG_PATTERN.replace('VERSION', version);
+      console.log('📦 Version:', version);
+      console.log('🔗 Constructed URL:', dmgUrl);
     }
     
     // Extract filename from URL
