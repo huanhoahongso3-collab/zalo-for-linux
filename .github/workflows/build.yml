@@ -60,3 +60,50 @@ jobs:
       run: |
         npm run setup
         npm run build
+        
+    - name: Upload Original AppImage artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.build.outputs.original_appimage_name }}
+        path: ${{ steps.build.outputs.original_appimage_file }}
+        retention-days: 30
+        
+    - name: Upload ZaDark AppImage artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.build.outputs.zadark_appimage_name }}
+        path: ${{ steps.build.outputs.zadark_appimage_file }}
+        retention-days: 30
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.build.outputs.release_tag }}
+        name: ${{ steps.build.outputs.release_tag }}
+        body: |          
+          🎉 **Unofficial Zalo port for Linux systems**
+          - Zalo version: **${{ steps.build.outputs.zalo_version }}**
+
+          ## 🚀 How to use
+          ```bash
+          # Download and verify (ZaDark version)
+          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.build.outputs.release_tag }}/${{ steps.build.outputs.zadark_appimage_name }}
+          echo "${{ steps.build.outputs.zadark_file_sha256 }}  ${{ steps.build.outputs.zadark_appimage_name }}" | sha256sum -c
+          
+          # Make executable and run
+          chmod +x ${{ steps.build.outputs.zadark_appimage_name }}
+          ./${{ steps.build.outputs.zadark_appimage_name }}
+          ```
+
+          ## 📋 System Requirements
+          - Linux x64
+          - GLIBC 2.28 or later
+          
+          ## 🐛 Issues & Support
+          Please report issues in the [GitHub Issues](https://github.com/${{ github.repository }}/issues) section.
+
+        files: |
+          ${{ steps.build.outputs.original_appimage_file }}
+          ${{ steps.build.outputs.zadark_appimage_file }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
