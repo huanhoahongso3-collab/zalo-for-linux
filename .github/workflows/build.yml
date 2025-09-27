@@ -90,13 +90,15 @@ jobs:
           It is recommended to use [Gear Lever](https://github.com/mijorus/gearlever) to manage and integrate the AppImage.
 
           ```bash
+          # Download the AppImage
+          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.build.outputs.zalo_version }}/${{ steps.build.outputs.zadark_appimage_name }}
+
           # Install with Gear Lever (recommended)
-          flatpak run it.mijorus.gearlever --integrate "https://github.com/${{ github.repository }}/releases/download/${{ steps.build.outputs.zalo_version }}/${{ steps.build.outputs.zadark_appimage_name }}"
+          flatpak run it.mijorus.gearlever --integrate ${{ steps.build.outputs.zadark_appimage_name }}
 
           # --- OR ---
 
-          # Manual download and run
-          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.build.outputs.zalo_version }}/${{ steps.build.outputs.zadark_appimage_name }}
+          # Manual run
           chmod +x ${{ steps.build.outputs.zadark_appimage_name }}
           ./${{ steps.build.outputs.zadark_appimage_name }}
           ```
