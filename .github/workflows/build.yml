@@ -51,6 +51,7 @@ jobs:
       run: npm ci --prefer-offline --no-audit
 
     - name: Setup and Build
+      id: build
       env:
         CI: true
         ZALO_VERSION: ${{ github.event.inputs.zalo_version }}
