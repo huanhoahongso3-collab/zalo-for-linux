@@ -88,8 +88,6 @@ async function buildZalo(buildName = '', outputSuffix = '') {
     const appImageMatch = buildOutput.match(/file=(dist\/.*\.AppImage)/);
     let appImageFile = null;
     let appImageName = null;
-    let fileSize = null;
-    let fileSha256 = null;
     
     if (appImageMatch) {
       appImageFile = appImageMatch[1];
@@ -99,14 +97,14 @@ async function buildZalo(buildName = '', outputSuffix = '') {
       
       // Get file size
       if (fs.existsSync(appImageFile)) {
-        fileSize = fs.statSync(appImageFile).size;
+        const fileSize = fs.statSync(appImageFile).size;
         
         console.log(`📏 Size: ${fileSize} bytes`);
         
-        // Calculate SHA256
+        // Calculate SHA256 for logging
         try {
           const sha256Output = execSync(`sha256sum "${appImageFile}"`, { encoding: 'utf8' });
-          fileSha256 = sha256Output.split(' ')[0];
+          const fileSha256 = sha256Output.split(' ')[0];
           console.log(`🔐 SHA256: ${fileSha256}`);
         } catch (error) {
           console.warn('⚠️ Could not calculate SHA256');
@@ -120,15 +118,12 @@ async function buildZalo(buildName = '', outputSuffix = '') {
 
       // Export build info to GitHub Actions
       if (process.env.GITHUB_OUTPUT) {
-        const fileSizeMB = fileSize ? (fileSize / 1024 / 1024).toFixed(2) + 'MB' : '';
         const prefix = outputSuffix === '-ZaDark' ? 'zadark_' : 'original_';
         
         // Export build-specific info
         const specificOutputs = [
           `${prefix}appimage_file=${appImageFile || ''}`,
-          `${prefix}appimage_name=${appImageName || ''}`,
-          `${prefix}file_size=${fileSizeMB}`,
-          `${prefix}file_sha256=${fileSha256 || ''}`
+          `${prefix}appimage_name=${appImageName || ''}`
         ];
         
         specificOutputs.forEach(output => {
@@ -153,6 +148,10 @@ async function main() {
       ZALO_VERSION = packageJson.version;
       console.log('📝 Read Zalo version from package.json.bak:', ZALO_VERSION);
 
+      // Export global outputs for workflow
+      if (process.env.GITHUB_OUTPUT) {
+        fs.appendFileSync(process.env.GITHUB_OUTPUT, `zalo_version=${ZALO_VERSION}\n`);
+      }
     } else {
       console.warn('⚠️  package.json.bak not found, version will be unknown');
     }

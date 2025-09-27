@@ -79,19 +79,24 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ steps.build.outputs.release_tag }}
-        name: ${{ steps.build.outputs.release_tag }}
+        tag_name: ${{ steps.build.outputs.zalo_version }}
+        name: ${{ steps.build.outputs.zalo_version }}
         body: |          
           🎉 **Unofficial Zalo port for Linux systems**
           - Zalo version: **${{ steps.build.outputs.zalo_version }}**
 
           ## 🚀 How to use
-          ```bash
-          # Download and verify (ZaDark version)
-          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.build.outputs.release_tag }}/${{ steps.build.outputs.zadark_appimage_name }}
-          echo "${{ steps.build.outputs.zadark_file_sha256 }}  ${{ steps.build.outputs.zadark_appimage_name }}" | sha256sum -c
           
-          # Make executable and run
+          It is recommended to use [Gear Lever](https://github.com/mijorus/gearlever) to manage and integrate the AppImage.
+
+          ```bash
+          # Install with Gear Lever (recommended)
+          flatpak run it.mijorus.gearlever --integrate "https://github.com/${{ github.repository }}/releases/download/${{ steps.build.outputs.zalo_version }}/${{ steps.build.outputs.zadark_appimage_name }}"
+
+          # --- OR ---
+
+          # Manual download and run
+          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.build.outputs.zalo_version }}/${{ steps.build.outputs.zadark_appimage_name }}
           chmod +x ${{ steps.build.outputs.zadark_appimage_name }}
           ./${{ steps.build.outputs.zadark_appimage_name }}
           ```
