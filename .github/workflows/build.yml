@@ -31,6 +31,11 @@ jobs:
     - name: Update ZaDark submodule
       run: git submodule update --remote plugins/zadark
 
+    - name: Install Flatpak build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y flatpak flatpak-builder appstream
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
