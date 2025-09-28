@@ -106,6 +106,13 @@ jobs:
         chmod 755 deb/DEBIAN/postinst
         dpkg-deb --build deb "dist/zalo-zadark_${{ steps.build.outputs.zalo_version }}.deb"
         rm -rf deb
+        - name: Install flatpak-builder and runtimes
+     run: |
+         sudo apt-get update
+         sudo apt-get install -y flatpak flatpak-builder
+         flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+         flatpak install -y flathub org.freedesktop.Sdk//23.08 org.freedesktop.Platform//23.08
+ 
 
     # -------- Flatpak Bundles --------
     - name: Build Flatpak packages
