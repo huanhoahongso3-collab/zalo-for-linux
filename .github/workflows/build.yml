@@ -1,4 +1,4 @@
-name: Build Zalo for Linux (.deb)
+name: Build Zalo for Linux
 
 on:
   schedule:
@@ -22,7 +22,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -30,8 +29,7 @@ jobs:
         submodules: recursive
 
     - name: Update ZaDark submodule
-      run: |
-        git submodule update --remote plugins/zadark
+      run: git submodule update --remote plugins/zadark
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -50,114 +48,155 @@ jobs:
     - name: Install Node.js dependencies
       run: npm ci --prefer-offline --no-audit
 
-    - name: Build Electron App
+    - name: Setup and Build
+      id: build
+      env:
+        CI: true
+        ZALO_VERSION: ${{ github.event.inputs.zalo_version }}
+        ZADARK_VERSION: ${{ github.event.inputs.zadark_version }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
       run: |
         npm run setup
         npm run build
-        # This should create dist/linux-unpacked with the built app
 
-    - name: Build Debian Package
-      id: deb
+    # -------- Debian Packages --------
+    - name: Build Debian packages
       run: |
-        APP_VERSION=${{ github.event.inputs.zalo_version || '25.8.3' }}
-        PKG_DIR=package/zalo_${APP_VERSION}_amd64
+        mkdir -p dist
 
-        mkdir -p $PKG_DIR/DEBIAN
-        cat > $PKG_DIR/DEBIAN/control <<EOF
+        # Original
+        mkdir -p deb/usr/bin
+        cp "${{ steps.build.outputs.original_appimage_file }}" deb/usr/bin/zalo
+        mkdir -p deb/DEBIAN
+        cat > deb/DEBIAN/control <<EOF
         Package: zalo
-        Version: ${APP_VERSION}
+        Version: ${{ steps.build.outputs.zalo_version }}
         Section: utils
         Priority: optional
         Architecture: amd64
-        Depends: libc6 (>= 2.28), libgtk-3-0, libnss3, libasound2
-        Maintainer: Zalo Linux Packaging <noreply@github.com>
-        Description: Zalo Messenger for Linux
-         A community build of Zalo Messenger desktop client for Linux.
+        Maintainer: Zalo Linux Build <noreply@example.com>
+        Description: Zalo Desktop client for Linux
+         Original build.
         EOF
+        echo '#!/bin/sh\nchmod +x /usr/bin/zalo' > deb/DEBIAN/postinst
+        chmod 755 deb/DEBIAN/postinst
+        dpkg-deb --build deb "dist/zalo_${{ steps.build.outputs.zalo_version }}.deb"
+        rm -rf deb
 
-        cat > $PKG_DIR/DEBIAN/postinst <<'EOF'
-        #!/bin/sh
-        set -e
-        if command -v update-desktop-database >/dev/null 2>&1; then
-            update-desktop-database -q
-        fi
-        if command -v gtk-update-icon-cache >/dev/null 2>&1; then
-            gtk-update-icon-cache -q /usr/share/icons/hicolor || true
-        fi
-        exit 0
+        # ZaDark
+        mkdir -p deb/usr/bin
+        cp "${{ steps.build.outputs.zadark_appimage_file }}" deb/usr/bin/zalo
+        mkdir -p deb/DEBIAN
+        cat > deb/DEBIAN/control <<EOF
+        Package: zalo-zadark
+        Version: ${{ steps.build.outputs.zalo_version }}
+        Section: utils
+        Priority: optional
+        Architecture: amd64
+        Maintainer: Zalo Linux Build <noreply@example.com>
+        Description: Zalo Desktop client with ZaDark theme
         EOF
-        chmod 755 $PKG_DIR/DEBIAN/postinst
+        echo '#!/bin/sh\nchmod +x /usr/bin/zalo' > deb/DEBIAN/postinst
+        chmod 755 deb/DEBIAN/postinst
+        dpkg-deb --build deb "dist/zalo-zadark_${{ steps.build.outputs.zalo_version }}.deb"
+        rm -rf deb
 
-        cat > $PKG_DIR/DEBIAN/prerm <<'EOF'
-        #!/bin/sh
-        set -e
-        if command -v update-desktop-database >/dev/null 2>&1; then
-            update-desktop-database -q
-        fi
-        exit 0
+    # -------- Flatpak Bundles --------
+    - name: Build Flatpak packages
+      run: |
+        mkdir -p dist
+
+        # Original
+        cat > manifest.json <<EOF
+        {
+          "app-id": "vn.zalo.Zalo",
+          "runtime": "org.freedesktop.Platform",
+          "runtime-version": "23.08",
+          "sdk": "org.freedesktop.Sdk",
+          "command": "zalo",
+          "modules": [
+            {
+              "name": "zalo",
+              "buildsystem": "simple",
+              "build-commands": [
+                "install -Dm755 ${{ steps.build.outputs.original_appimage_file }} /app/bin/zalo"
+              ]
+            }
+          ]
+        }
         EOF
-        chmod 755 $PKG_DIR/DEBIAN/prerm
+        flatpak-builder --force-clean build-dir manifest.json
+        flatpak build-export repo build-dir
+        flatpak build-bundle repo "dist/zalo-${{ steps.build.outputs.zalo_version }}.flatpak" vn.zalo.Zalo
 
-        mkdir -p $PKG_DIR/usr/share/zalo
-        mkdir -p $PKG_DIR/usr/bin
-        mkdir -p $PKG_DIR/usr/share/applications
-        mkdir -p $PKG_DIR/usr/share/icons/hicolor/512x512/apps
-
-        # Copy app
-        cp -r dist/linux-unpacked/* $PKG_DIR/usr/share/zalo/
-
-        # Launcher
-        cat > $PKG_DIR/usr/bin/zalo <<'EOF'
-        #!/bin/sh
-        exec /usr/share/zalo/zalo "$@"
+        # ZaDark
+        cat > manifest.json <<EOF
+        {
+          "app-id": "vn.zalo.ZaloZaDark",
+          "runtime": "org.freedesktop.Platform",
+          "runtime-version": "23.08",
+          "sdk": "org.freedesktop.Sdk",
+          "command": "zalo",
+          "modules": [
+            {
+              "name": "zalo",
+              "buildsystem": "simple",
+              "build-commands": [
+                "install -Dm755 ${{ steps.build.outputs.zadark_appimage_file }} /app/bin/zalo"
+              ]
+            }
+          ]
+        }
         EOF
-        chmod 755 $PKG_DIR/usr/bin/zalo
+        flatpak-builder --force-clean build-dir manifest.json
+        flatpak build-export repo build-dir
+        flatpak build-bundle repo "dist/zalo-zadark-${{ steps.build.outputs.zalo_version }}.flatpak" vn.zalo.ZaloZaDark
 
-        # Desktop entry
-        cat > $PKG_DIR/usr/share/applications/zalo.desktop <<EOF
-        [Desktop Entry]
-        Name=Zalo
-        Exec=zalo
-        Icon=zalo
-        Type=Application
-        Categories=Network;Chat;
-        EOF
-
-        # Icon (if available)
-        if [ -f build/icon.png ]; then
-          cp build/icon.png $PKG_DIR/usr/share/icons/hicolor/512x512/apps/zalo.png
-        fi
-
-        dpkg-deb --build $PKG_DIR
-        echo "deb_file=${PKG_DIR}.deb" >> $GITHUB_OUTPUT
-
-    - name: Upload .deb artifact
+    # -------- Upload Artifacts --------
+    - name: Upload all artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: zalo-${{ github.event.inputs.zalo_version || 'latest' }}.deb
-        path: ${{ steps.deb.outputs.deb_file }}
-        retention-days: 30
+        name: zalo-dist
+        path: dist/*
 
+    # -------- Release --------
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.event.inputs.zalo_version || github.sha }}
-        name: ${{ github.event.inputs.zalo_version || 'Zalo Build' }}
+        tag_name: v${{ steps.build.outputs.zalo_version }}
+        name: Zalo v${{ steps.build.outputs.zalo_version }}
         body: |
-          ## 🚀 How to install
+          ## 🚀 How to use
 
+          ### AppImage
           ```bash
-          wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.zalo_version || github.sha }}/zalo-${{ github.event.inputs.zalo_version || 'latest' }}_amd64.deb
-          sudo apt install ./zalo-${{ github.event.inputs.zalo_version || 'latest' }}_amd64.deb
+          chmod +x Zalo-*.AppImage
+          ./Zalo-*.AppImage
+          ```
+
+          ### Debian
+          ```bash
+          sudo dpkg -i zalo_*.deb
+          sudo dpkg -i zalo-zadark_*.deb
+          ```
+
+          ### Flatpak
+          ```bash
+          flatpak install zalo-*.flatpak
+          flatpak install zalo-zadark-*.flatpak
           ```
 
           ## 📋 System Requirements
           - Linux x64
-          - GLIBC 2.28 or later
+          - GLIBC 2.28+
 
           ## 🐛 Issues & Support
-          Please report issues in the [GitHub Issues](https://github.com/${{ github.repository }}/issues) section.
-
-        files: ${{ steps.deb.outputs.deb_file }}
+          Please report issues in the [GitHub Issues](https://github.com/${{ github.repository }}/issues).
+        files: |
+          ${{ steps.build.outputs.original_appimage_file }}
+          ${{ steps.build.outputs.zadark_appimage_file }}
+          dist/*.deb
+          dist/*.flatpak
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
