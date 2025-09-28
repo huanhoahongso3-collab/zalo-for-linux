@@ -1,4 +1,4 @@
-name: Build Zalo for Linux
+name: Build Zalo for Linux (.deb)
 
 on:
   schedule:
@@ -38,7 +38,7 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
-        
+
     - name: Cache Electron binaries
       uses: actions/cache@v3
       with:
@@ -46,69 +46,118 @@ jobs:
         key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-electron-
-          
+
     - name: Install Node.js dependencies
       run: npm ci --prefer-offline --no-audit
 
-    - name: Setup and Build
-      id: build
-      env:
-        CI: true
-        ZALO_VERSION: ${{ github.event.inputs.zalo_version }}
-        ZADARK_VERSION: ${{ github.event.inputs.zadark_version }}
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITHUB_REPOSITORY: ${{ github.repository }}
+    - name: Build Electron App
       run: |
         npm run setup
         npm run build
-        
-    - name: Upload Original AppImage artifact
+        # This should create dist/linux-unpacked with the built app
+
+    - name: Build Debian Package
+      id: deb
+      run: |
+        APP_VERSION=${{ github.event.inputs.zalo_version || '25.8.3' }}
+        PKG_DIR=package/zalo_${APP_VERSION}_amd64
+
+        mkdir -p $PKG_DIR/DEBIAN
+        cat > $PKG_DIR/DEBIAN/control <<EOF
+        Package: zalo
+        Version: ${APP_VERSION}
+        Section: utils
+        Priority: optional
+        Architecture: amd64
+        Depends: libc6 (>= 2.28), libgtk-3-0, libnss3, libasound2
+        Maintainer: Zalo Linux Packaging <noreply@github.com>
+        Description: Zalo Messenger for Linux
+         A community build of Zalo Messenger desktop client for Linux.
+        EOF
+
+        cat > $PKG_DIR/DEBIAN/postinst <<'EOF'
+        #!/bin/sh
+        set -e
+        if command -v update-desktop-database >/dev/null 2>&1; then
+            update-desktop-database -q
+        fi
+        if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+            gtk-update-icon-cache -q /usr/share/icons/hicolor || true
+        fi
+        exit 0
+        EOF
+        chmod 755 $PKG_DIR/DEBIAN/postinst
+
+        cat > $PKG_DIR/DEBIAN/prerm <<'EOF'
+        #!/bin/sh
+        set -e
+        if command -v update-desktop-database >/dev/null 2>&1; then
+            update-desktop-database -q
+        fi
+        exit 0
+        EOF
+        chmod 755 $PKG_DIR/DEBIAN/prerm
+
+        mkdir -p $PKG_DIR/usr/share/zalo
+        mkdir -p $PKG_DIR/usr/bin
+        mkdir -p $PKG_DIR/usr/share/applications
+        mkdir -p $PKG_DIR/usr/share/icons/hicolor/512x512/apps
+
+        # Copy app
+        cp -r dist/linux-unpacked/* $PKG_DIR/usr/share/zalo/
+
+        # Launcher
+        cat > $PKG_DIR/usr/bin/zalo <<'EOF'
+        #!/bin/sh
+        exec /usr/share/zalo/zalo "$@"
+        EOF
+        chmod 755 $PKG_DIR/usr/bin/zalo
+
+        # Desktop entry
+        cat > $PKG_DIR/usr/share/applications/zalo.desktop <<EOF
+        [Desktop Entry]
+        Name=Zalo
+        Exec=zalo
+        Icon=zalo
+        Type=Application
+        Categories=Network;Chat;
+        EOF
+
+        # Icon (if available)
+        if [ -f build/icon.png ]; then
+          cp build/icon.png $PKG_DIR/usr/share/icons/hicolor/512x512/apps/zalo.png
+        fi
+
+        dpkg-deb --build $PKG_DIR
+        echo "deb_file=${PKG_DIR}.deb" >> $GITHUB_OUTPUT
+
+    - name: Upload .deb artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ steps.build.outputs.original_appimage_name }}
-        path: ${{ steps.build.outputs.original_appimage_file }}
+        name: zalo-${{ github.event.inputs.zalo_version || 'latest' }}.deb
+        path: ${{ steps.deb.outputs.deb_file }}
         retention-days: 30
-        
-    - name: Upload ZaDark AppImage artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ steps.build.outputs.zadark_appimage_name }}
-        path: ${{ steps.build.outputs.zadark_appimage_file }}
-        retention-days: 30
-        
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ steps.build.outputs.zalo_version }}
-        name: ${{ steps.build.outputs.zalo_version }}
+        tag_name: ${{ github.event.inputs.zalo_version || github.sha }}
+        name: ${{ github.event.inputs.zalo_version || 'Zalo Build' }}
         body: |
-          ## 🚀 How to use
-          
-          It is recommended to use [Gear Lever](https://github.com/mijorus/gearlever) to manage and integrate the AppImage.
+          ## 🚀 How to install
 
           ```bash
-          # Download the AppImage
-          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.build.outputs.zalo_version }}/${{ steps.build.outputs.zadark_appimage_name }}
-
-          # Install with Gear Lever (recommended)
-          flatpak run it.mijorus.gearlever --integrate ${{ steps.build.outputs.zadark_appimage_name }}
-
-          # --- OR ---
-
-          # Manual run
-          chmod +x ${{ steps.build.outputs.zadark_appimage_name }}
-          ./${{ steps.build.outputs.zadark_appimage_name }}
+          wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.zalo_version || github.sha }}/zalo-${{ github.event.inputs.zalo_version || 'latest' }}_amd64.deb
+          sudo apt install ./zalo-${{ github.event.inputs.zalo_version || 'latest' }}_amd64.deb
           ```
 
           ## 📋 System Requirements
           - Linux x64
           - GLIBC 2.28 or later
-          
+
           ## 🐛 Issues & Support
           Please report issues in the [GitHub Issues](https://github.com/${{ github.repository }}/issues) section.
 
-        files: |
-          ${{ steps.build.outputs.original_appimage_file }}
-          ${{ steps.build.outputs.zadark_appimage_file }}
+        files: ${{ steps.deb.outputs.deb_file }}
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
