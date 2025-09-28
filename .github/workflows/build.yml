@@ -22,6 +22,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -35,6 +36,11 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y flatpak flatpak-builder appstream
+
+    - name: Add Flathub remote + runtimes
+      run: |
+        flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        flatpak install -y flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -84,7 +90,7 @@ jobs:
         Description: Zalo Desktop client for Linux
          Original build.
         EOF
-        echo '#!/bin/sh\nchmod +x /usr/bin/zalo' > deb/DEBIAN/postinst
+        echo -e '#!/bin/sh\nchmod +x /usr/bin/zalo' > deb/DEBIAN/postinst
         chmod 755 deb/DEBIAN/postinst
         dpkg-deb --build deb "dist/zalo_${{ steps.build.outputs.zalo_version }}.deb"
         rm -rf deb
@@ -102,17 +108,10 @@ jobs:
         Maintainer: Zalo Linux Build <noreply@example.com>
         Description: Zalo Desktop client with ZaDark theme
         EOF
-        echo '#!/bin/sh\nchmod +x /usr/bin/zalo' > deb/DEBIAN/postinst
+        echo -e '#!/bin/sh\nchmod +x /usr/bin/zalo' > deb/DEBIAN/postinst
         chmod 755 deb/DEBIAN/postinst
         dpkg-deb --build deb "dist/zalo-zadark_${{ steps.build.outputs.zalo_version }}.deb"
         rm -rf deb
-   - name: Install flatpak-builder and runtimes
-     run: |
-         sudo apt-get update
-         sudo apt-get install -y flatpak flatpak-builder
-         flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-         flatpak install -y flathub org.freedesktop.Sdk//23.08 org.freedesktop.Platform//23.08
- 
 
     # -------- Flatpak Bundles --------
     - name: Build Flatpak packages
@@ -120,7 +119,7 @@ jobs:
         mkdir -p dist
 
         # Original
-        cat > manifest.json <<EOF
+        cat > manifest-original.json <<EOF
         {
           "app-id": "vn.zalo.Zalo",
           "runtime": "org.freedesktop.Platform",
@@ -138,12 +137,12 @@ jobs:
           ]
         }
         EOF
-        flatpak-builder --force-clean build-dir manifest.json
+        flatpak-builder --force-clean --install-deps-from=flathub build-dir manifest-original.json
         flatpak build-export repo build-dir
         flatpak build-bundle repo "dist/zalo-${{ steps.build.outputs.zalo_version }}.flatpak" vn.zalo.Zalo
 
         # ZaDark
-        cat > manifest.json <<EOF
+        cat > manifest-zadark.json <<EOF
         {
           "app-id": "vn.zalo.ZaloZaDark",
           "runtime": "org.freedesktop.Platform",
@@ -161,7 +160,7 @@ jobs:
           ]
         }
         EOF
-        flatpak-builder --force-clean build-dir manifest.json
+        flatpak-builder --force-clean --install-deps-from=flathub build-dir manifest-zadark.json
         flatpak build-export repo build-dir
         flatpak build-bundle repo "dist/zalo-zadark-${{ steps.build.outputs.zalo_version }}.flatpak" vn.zalo.ZaloZaDark
 
@@ -195,8 +194,8 @@ jobs:
 
           ### Flatpak
           ```bash
-          flatpak install zalo-*.flatpak
-          flatpak install zalo-zadark-*.flatpak
+          flatpak install --user --bundle zalo-*.flatpak
+          flatpak install --user --bundle zalo-zadark-*.flatpak
           ```
 
           ## 📋 System Requirements
