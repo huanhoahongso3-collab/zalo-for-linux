@@ -73,22 +73,26 @@ To enable automatic update checks for Zalo in Gear Lever, follow these steps:
 1.  Open **Gear Lever** and select **Zalo** from your list of applications.
 2.  Scroll down to the **Update Management** section.
 3.  For the **Source** field, select **GitHub**.
-4.  In the **Update URL** field, paste **one** of the following patterns, depending on which variant of Zalo you are using:
+4.  In the **Repo URL** field, paste:
+    ```text
+    https://github.com/doandat943/zalo-for-linux
+    ```
+5.  In the **Release file name** field, paste **one** of the following patterns, depending on which variant of Zalo you are using:
 
     ##### For Non-ZaDark Variant
 
-    ```
-    https://github.com/doandat943/zalo-for-linux/releases/download/*/Zalo-*-*.AppImage
+    ```text
+    Zalo-*-*.AppImage
     ```
 
     ##### For ZaDark Variant
 
-    ```
-    https://github.com/doandat943/zalo-for-linux/releases/download/*/Zalo-*+ZaDark-*-*.AppImage
+    ```text
+    Zalo-*+ZaDark-*-*.AppImage
     ```
 
-5.  Click **Save**. If the URL field turns green, the pattern has been accepted successfully.
-6.  Finally, click the **Reload metadata** button to fetch the latest version information.
+6.  Click **Save**.
+7.  Finally, click the **Reload metadata** button (or refresh icon) to fetch the latest version information.
 
 #### How to Update Zalo
 
