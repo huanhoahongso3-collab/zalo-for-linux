@@ -195,23 +195,43 @@ async function extractAppAsar() {
   fs.renameSync(packageJsonPath, packageJsonBakPath);
 
   // Patch main.js to enable title bar (T,frame:!1 -> T,frame:!0)
-  console.log('🔧 Patching frame settings for title bar...');
-  const mainJsPath = path.join(APP_DIR, 'main-dist', 'main.js');
-  if (fs.existsSync(mainJsPath)) {
-    let mainJsContent = fs.readFileSync(mainJsPath, 'utf8');
+  try {
+    const mainJsPath = path.join(APP_DIR, 'main-dist', 'main.js');
+    if (fs.existsSync(mainJsPath)) {
+      let mainContent = fs.readFileSync(mainJsPath, 'utf8');
 
-    const targetPattern = 'T,frame:!1';
-    const replacement = 'T,frame:!0';
-
-    if (mainJsContent.includes(targetPattern)) {
-      mainJsContent = mainJsContent.replace(targetPattern, replacement);
-      fs.writeFileSync(mainJsPath, mainJsContent);
-      console.log('✅ Patched T,frame:!1 -> T,frame:!0 (title bar enabled)');
+      if (mainContent.includes('T,frame:!1')) {
+        mainContent = mainContent.replace(/T,frame:!1/g, 'T,frame:!0');
+        fs.writeFileSync(mainJsPath, mainContent, 'utf8');
+        console.log('✅ Patched T,frame:!1 -> T,frame:!0 (title bar enabled)');
+      } else {
+        console.log('⚠️  Pattern T,frame:!1 not found in main.js, skipping patch');
+      }
     } else {
-      console.log('⚠️  Pattern T,frame:!1 not found in main.js');
+      console.log('⚠️  main.js not present, skipping patch');
     }
-  } else {
-    console.log('⚠️  main.js not found');
+  } catch (e) {
+    console.error('❌ Failed to patch main.js:', e && e.message);
+  }
+
+  // Patch sqlite3-binding: replace ${process.platform} with darwin (to fix freeze on login screen)
+  try {
+    const sqliteBindingPath = path.join(APP_DIR, 'native', 'nativelibs', 'sqlite3', 'sqlite3-binding.js');
+    if (fs.existsSync(sqliteBindingPath)) {
+      let bindingContent = fs.readFileSync(sqliteBindingPath, 'utf8');
+
+      if (bindingContent.includes('${process.platform}')) {
+        bindingContent = bindingContent.replace(/\$\{process\.platform\}/g, 'darwin');
+        fs.writeFileSync(sqliteBindingPath, bindingContent, 'utf8');
+        console.log('✅ Replaced ${process.platform} with darwin in sqlite3-binding (inline)');
+      } else {
+        console.log('⚠️  ${process.platform} not found in sqlite3-binding, skipping patch');
+      }
+    } else {
+      console.log('⚠️  sqlite3-binding.js not present, skipping sqlite patch');
+    }
+  } catch (e) {
+    console.error('❌ Failed to patch sqlite3-binding:', e && e.message);
   }
 }
 

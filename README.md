@@ -15,6 +15,7 @@ Thanks **realdtn2** for the solution: [realdtn2/zalo-linux-unofficial-2024](http
 - Crash when click **Screenshot without Zalo window button**
 - **✅ Fixed: No title bar with minimize/maximize/close buttons** - Thanks to [@NanKillBro](https://github.com/NanKillBro) for the solution. For more details, see [issue #4](https://github.com/doandat943/zalo-for-linux/issues/4)
 - **✅ Fixed: No tray menu icon**
+- **✅ Fixed: Freeze on login screen** - Patched sqlite3 native bindings to work correctly on Linux.
 
 This project is best suited for users who need a native-feeling Zalo client on Linux and are comfortable with the technical workarounds required for full functionality.
 
@@ -116,36 +117,45 @@ Steps:
 # Clone the repository
 git clone https://github.com/doandat943/zalo-for-linux.git
 cd zalo-for-linux
+# Then initialize or update submodules
+git submodule update --init --recursive
 
 # Option 1: Auto-download latest version (recommended)
-npm run setup
+npm run main:setup
 
 # Option 2: Download specific version
-DMG_VERSION="25.8.2" npm run setup
+ZALO_VERSION="25.11.20" npm run main:setup
 
 # Build AppImage
-npm run build
+npm run main:build
 ```
+
+> ⚠️ Notes:
+> - `npm run main` runs setup + build (equivalent to `SETUP=true BUILD=true node scripts/main.js`).
+> - `npm run main:setup` runs check-versions + download-dmg + prepare-zadark + prepare-app.
+> - `npm run main:build` runs build stage only.
 
 The final AppImage will be in the `dist/` directory!
 
 ## 🛠️ Development Scripts
 
-| **Command**              | **Description**                                         |
-| ------------------------ | ------------------------------------------------------- |
-| `npm run setup`\*        | Equal `download-dmg` + `prepare-zadark` + `prepare-app` |
-| `npm run start`          | Runs the app in development mode                        |
-| `npm run build`          | Builds AppImage                                         |
-| `npm run download-dmg`\* | Download Zalo DMG                                       |
-| `npm run prepare-app`\*  | Extract Zalo DMG                                        |
-| `npm run prepare-zadark` | Clones and builds ZaDark assets for later integration   |
+| **Command** | **Description** |
+|---|---|
+| `npm run main:setup` | `SETUP=true node scripts/main.js` (check + download + prepare) |
+| `npm run main:build` | `BUILD=true node scripts/main.js` (build AppImage) |
+| `npm run start` | Runs the app in development mode |
+| `npm run build` | Builds AppImage (calls `scripts/build.js`) |
+| `npm run download-dmg`* | Download Zalo DMG |
+| `npm run prepare-app`* | Extract Zalo DMG |
+| `npm run prepare-zadark` | Clones and builds ZaDark assets for later integration |
 
 ## 🌍 Environment Variables
 
-| **Variable**     | **Description**                                | **Example**            |
-| ---------------- | ---------------------------------------------- | ---------------------- |
-| `DMG_VERSION`    | Specify exact Zalo version to download/extract | `DMG_VERSION="25.8.2"` |
-| `FORCE_DOWNLOAD` | Force re-download even if file exists          | `FORCE_DOWNLOAD=true`  |
+| **Variable** | **Description** | **Example** |
+|---|---|---|
+| `ZALO_VERSION` | Specify exact Zalo version to download/extract | `ZALO_VERSION="25.11.20"` |
+| `ZADARK_VERSION` | Specify exact ZaDark version to download/integrate | `ZADARK_VERSION="v8.3.4"` |
+| `FORCE_DOWNLOAD` | Force re-download even if file exists | `FORCE_DOWNLOAD=true` |
 
 ## Example
 
@@ -162,26 +172,26 @@ npm run prepare-app
 # Automatically downloads the latest Zalo version from https://zalo.me/download/zalo-pc
 # Extract DMG version selected from previous step
 # Prepare ZaDark
-npm run setup
+npm run main:setup
 ```
 
 **🎯 Version Mode (Meant with environtment variable):**
 
 ```bash
 # Just specify the version number! Script constructs the URL automatically
-# Uses pattern: https://res-download-pc.zadn.vn/mac/ZaloSetup-universal-{DMG_VERSION}.dmg
+# Uses pattern: https://res-download-pc.zadn.vn/mac/ZaloSetup-universal-{ZALO_VERSION}.dmg
 # Zalo servers handle redirect to the actual download location
-DMG_VERSION="25.8.2" npm run download-dmg
+ZALO_VERSION="25.8.2" npm run download-dmg
 
 # Extract DMG version specificed
-DMG_VERSION="25.8.2" npm run prepare-app
+ZALO_VERSION="25.8.2" npm run prepare-app
 
 # Forces re-download even if file already exists
 FORCE_DOWNLOAD=true npm run download-dmg
 
 # Example: Specific version with force re-download
-DMG_VERSION="25.8.2" FORCE_DOWNLOAD=true npm run download-dmg
-DMG_VERSION="25.8.2" FORCE_DOWNLOAD=true npm run setup
+ZALO_VERSION="25.8.2" FORCE_DOWNLOAD=true npm run download-dmg
+ZALO_VERSION="25.8.2" FORCE_DOWNLOAD=true npm run main:setup
 ```
 
 ### 🎯 Interactive DMG Selection
@@ -227,6 +237,12 @@ This project is not a from-scratch rewrite of Zalo. It works by:
 3.  Removing incompatible native macOS files.
 4.  Wrapping the extracted application in a minimal, Linux-compatible Electron shell.
 5.  Using `electron-builder` to package everything into a single, portable `AppImage` file.
+
+## 🐛 Troubleshooting & Debugging
+
+If you encounter issues or want to inspect the app's behavior, you can easily open Chrome Developer Tools (DevTools) using the following methods:
+- **Keyboard Shortcut**: Press `Ctrl` + `Shift` + `I` while the Zalo window is focused.
+- **Tray Menu**: Right-click the Zalo tray icon and select **"Toggle DevTools"**.
 
 ## 🤝 Contributing
 

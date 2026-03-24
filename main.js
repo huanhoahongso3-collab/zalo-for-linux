@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray } = require('electron');
+const { app, BrowserWindow, Menu, Tray, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -12,6 +12,7 @@ app.on('before-quit', () => {
     tray.destroy();
     tray = null;
   }
+  try { globalShortcut.unregisterAll(); } catch (_) {}
 });
 
 // Hide native menu bar but keep title bar
@@ -39,6 +40,18 @@ app.on('browser-window-created', (_evt, win) => {
               if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.hide();
               }
+            }
+          },
+          {
+            label: 'Toggle DevTools',
+            click: () => {
+              try {
+                const focused = BrowserWindow.getFocusedWindow() || mainWindow;
+                if (focused && focused.webContents) {
+                  if (focused.webContents.isDevToolsOpened()) focused.webContents.closeDevTools();
+                  else focused.webContents.openDevTools({ mode: 'detach' });
+                }
+              } catch (e) { console.error('Toggle DevTools failed', e); }
             }
           },
           {
@@ -105,6 +118,18 @@ app.once('ready', () => {
           mainWindow.focus();
         }
       });
+      // Register global shortcut for toggling DevTools
+      try {
+        globalShortcut.register('CommandOrControl+Shift+I', () => {
+          try {
+            const focused = BrowserWindow.getFocusedWindow() || mainWindow;
+            if (focused && focused.webContents) {
+              if (focused.webContents.isDevToolsOpened()) focused.webContents.closeDevTools();
+              else focused.webContents.openDevTools({ mode: 'detach' });
+            }
+          } catch (err) { console.error('globalShortcut toggle failed', err); }
+        });
+      } catch (e) { console.error('globalShortcut register failed', e); }
     } catch (error) {
       console.error('Failed to create tray icon:', error);
     }
