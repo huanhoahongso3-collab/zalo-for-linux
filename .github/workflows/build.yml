@@ -86,14 +86,8 @@ jobs:
           # Download the AppImage
           wget https://github.com/${{ github.repository }}/releases/download/${{ steps.build.outputs.zalo_version }}/${{ steps.build.outputs.zadark_appimage_name }}
 
-          # Install with Gear Lever (recommended)
+          # Install with Gear Lever
           flatpak run it.mijorus.gearlever --integrate ${{ steps.build.outputs.zadark_appimage_name }}
-
-          # --- OR ---
-
-          # Manual run
-          chmod +x ${{ steps.build.outputs.zadark_appimage_name }}
-          ./${{ steps.build.outputs.zadark_appimage_name }}
           ```
 
           ## 📋 System Requirements

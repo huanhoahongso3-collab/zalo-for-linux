@@ -40,31 +40,15 @@ This project includes integrated [ZaDark](https://github.com/quaric/zadark), ZaD
 
 ## 🚀 Quick Start
 
-### Usage (Recommended)
+### Usage
 
-#### Method 1: Using Gear Lever (AppImage Manager)
-
-This is the easiest method to manage and integrate the AppImage into your application menu.
+We strongly recommend using **Gear Lever** to run and manage the AppImage. It integrates the app perfectly into your system menu and handles auto-updates easily.
 
 1.  Download the latest `.AppImage` file from the [**Releases**](https://github.com/doandat943/zalo-for-linux/releases) page.
-2.  Install **Gear Lever** from [Flathub](https://flathub.org/en/apps/it.mijorus.gearlever). It's a utility to manage AppImages with ease.
+2.  Install **Gear Lever** from [Flathub](https://flathub.org/en/apps/it.mijorus.gearlever).
 3.  Open **Gear Lever**.
 4.  Click the **"Open"** button in the top-left corner and select the `.AppImage` file you downloaded.
 5.  The app will now appear in Gear Lever. Click the **"Unlock"** button, then choose **"Move to the app menu"** to integrate it into your system's application launcher.
-
-#### Method 2: Direct Execution
-
-If you prefer to run the AppImage directly:
-
-1.  Download the latest `.AppImage` file from the [**Releases**](https://github.com/doandat943/zalo-for-linux/releases) page.
-2.  Open a terminal, navigate to the download directory, and make the file executable:
-    ```bash
-    chmod +x Zalo-*.AppImage
-    ```
-3.  You can now run the application by double-clicking it or executing it from the terminal:
-    ```bash
-    ./Zalo-*.AppImage
-    ```
 
 #### Enable Automatic Updates with Gear Lever
 
